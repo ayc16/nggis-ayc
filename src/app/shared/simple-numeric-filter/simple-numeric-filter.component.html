@@ -1,0 +1,8 @@
+<div class="d-flex">
+    <span style="align-content: center;" [title]="tooltip">{{title}}</span>
+    <button [disabled]="(Value1 == null && Value2 == null) || !filterApplied" title="Clear Filter" (click)="clearValues();applyFilter();" class="ms-auto no-border rounded-0 btn btn-sm"><i class="fa-solid fa-filter-circle-xmark text-primary"></i></button>
+</div>
+<div title="value for filter" class="rangeControls mt-2 d-flex gap-2">
+    <input placeholder="Value1" [(ngModel)]="Value1" #v1 (keydown.enter)='v1.blur()' (blur)="applyFilter()" title="Value1" class="form-control" type="number" />
+    <input placeholder="Value2" [(ngModel)]="Value2" #v2 (keydown.enter)='v2.blur()' (blur)="applyFilter()" [title]="value2Ok == false ? 'Invalid Data. Checks: Value2 > Value1' : 'Value2'" class="form-control" type="number" [ngClass]="value2Ok == false ? 'data-invalid' : ''" />
+</div>

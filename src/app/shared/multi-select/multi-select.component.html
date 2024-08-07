@@ -1,0 +1,15 @@
+<div>
+    <h6>{{title}}</h6>
+    <div class="d-flex">
+        <ng-multiselect-dropdown style="align-content: center;" class="flex-fill" name="selItems" [placeholder]="title" [(ngModel)]="selectedItems" (ngModelChange)="onSelectionChanged($event)" [settings]="dropdownSettings" [data]="options" [disabled]="disabled">
+        </ng-multiselect-dropdown>
+        <div class="d-grid">
+            <button [disabled]="selectedItems.length < 1" title="Clear Selection" (click)="selectedItems = []" class="ms-auto no-border rounded-0 btn btn-sm"><i class="fa-solid fa-filter-circle-xmark text-primary"></i></button>
+            <button title="Selected {{title}}" *ngIf="selectedValues != null && selectedValues.length > 0" class="p-0 btn rounded-0 btn-sm no-border" type="button" (click)="selExpanded = !selExpanded"><i class="fa-solid fa-list-check"></i>
+            </button>
+        </div>
+    </div>
+    <div *ngIf="selExpanded" class="text-info">
+        <div *ngFor="let value of selectedValues; let i = index;">{{i+1}}. {{value}}</div>
+    </div>
+</div>

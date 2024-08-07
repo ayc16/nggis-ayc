@@ -1,0 +1,16 @@
+<div>
+    <div class="row">
+        <h6 style="align-self: center;" [title]="tooltip" class="col-4 pe-0">{{title}}</h6>
+        <ng-select placeholder="select" class="col-8 ps-0" [items]="options" bindLabel="text" bindValue="text" [(ngModel)]="selectedItem" (ngModelChange)="onSelectionChanged($event)">
+            <ng-template ng-option-tmp let-item="item">
+                <div [title]="item.value">{{item.text}}</div>
+            </ng-template>
+        </ng-select>
+    </div>
+
+    <div *ngIf="selectedItem != null" title="value for filter" class="rangeControls mt-2 d-flex gap-2">
+        <input [(ngModel)]="Value1" [title]="value1Ok == false ? 'Invalid Data.Checks: Value1 != null and Value1 > -1' : 'Value1'" class="form-control" type="number" [ngClass]="value1Ok == false ? 'data-invalid' : ''" />
+        <input *ngIf="need2Values" [(ngModel)]="Value2" [title]="value2Ok == false ? 'Invalid Data. Checks: Value2 > Value1, Value2 != null and Value2 > -1' : 'Value2'" class="form-control" type="number" [ngClass]="value2Ok == false ? 'data-invalid' : ''" />
+        <button type="button" title="apply filter" class="btn no-border text-primary" (click)="applyFilter()"><i class="fa-regular fa-circle-right"></i></button>
+    </div>
+</div>

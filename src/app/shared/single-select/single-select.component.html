@@ -1,0 +1,7 @@
+<div class="row">
+    <h6 style="align-self: center;" [title]="tooltip" class="col-4 pe-0">{{title}}</h6>
+    <div class="col-8 ps-0">
+        <ng-select placeholder="select" [items]="options" [bindLabel]="displayField" [bindValue]="valueField" [(ngModel)]="selectedItem" (ngModelChange)="onSelectionChanged($event)">
+        </ng-select>
+    </div>
+</div>

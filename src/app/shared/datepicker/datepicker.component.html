@@ -1,0 +1,14 @@
+<div #cal class="col-12">
+    <div class="input-group">
+        <input class="form-control" [ngClass]="classInput" placeholder="yyyy-mm-dd" name="dp" [(ngModel)]="dateValue" (ngModelChange)="dateValueChanged.emit(dateValue);dtpickr.close();" ngbDatepicker #dtpickr="ngbDatepicker" [footerTemplate]="footerTemplt" placement="top" container="body" autoClose="true" [minDate]="minDate" />
+        <button title="Toggle Calender" #btn class="btn btn-sm btn-outline-secondary" (click)="dtpickr.toggle()" type="button"><i class="fa-regular fa-calendar-days"></i></button>
+        <button title="Clear" class="btn btn-sm btn-outline-secondary" (click)="clearDate();dtpickr.close()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+</div>
+
+<ng-template #footerTemplt>
+    <hr class="my-0" />
+    <button title="Today" class="btn btn-primary btn-sm m-2 float-start" (click)="setToday(); dtpickr.close()">Today</button>
+    <!-- <button title="Done" class="btn btn-primary btn-sm m-2 float-start" (click)="dtpickr.close()">Done</button> -->
+    <button title="Clear" class="btn btn-secondary btn-sm m-2 float-end" (click)="clearDate();dtpickr.close()">Clear</button>
+</ng-template>

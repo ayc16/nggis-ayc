@@ -1,0 +1,13 @@
+<div>
+    <div class="d-flex">
+        <h6 style="align-self: center;" [title]="tooltip">{{title}}</h6>
+        <button [disabled]="Value1 == null && Value2 == null" title="Clear Filter" (click)="setValue1(null);setValue2(null);" class="ms-auto no-border rounded-0 btn btn-sm"><i class="fa-solid fa-filter-circle-xmark text-primary"></i></button>
+    </div>
+
+    <div title="value for filter" class="rangeControls mt-2 d-flex gap-2">
+        <div class="d-grid gap-2">
+            <app-datepicker [dateValue]="Value1" (dateValueChanged)="setValue1($event)" title="Date1"></app-datepicker>
+            <app-datepicker [dateValue]="Value2" (dateValueChanged)="setValue2($event)" [title]="value2Ok == false ? 'Invalid Data. Checks: Date2 > Date1' : 'Date2'" [classInput]="value2Ok == false ? 'data-invalid' : ''"></app-datepicker>
+        </div>
+    </div>
+</div>

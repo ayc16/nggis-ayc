@@ -1,0 +1,21 @@
+.esri-view {
+    padding: 0;
+    margin: 0;
+    height: 100%;
+    width: 100%;
+}
+
+#mapViewNode {
+    padding: 0;
+    margin: 0;
+    height: 100%;
+    width: 100%;
+}
+
+.form-check-input.squareChkbox {
+    border-radius: 0px !important;
+}
+
+.form-check-input:focus {
+    box-shadow: none !important;
+}
