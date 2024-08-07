@@ -1,0 +1,1 @@
+import{a as p,o as i,p as m}from"./chunk-F7PIPM6E.js";import{b as o,j as t,t as r}from"./chunk-UI76XBLJ.js";import{H as e}from"./chunk-KAAR5ZJN.js";var a={base:o,key:"type",typeMap:{extent:r,multipoint:p,point:t,polyline:m,polygon:i}},G=e(a);export{a};

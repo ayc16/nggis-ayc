@@ -1,0 +1,1 @@
+import{c as n}from"./chunk-BS6NG5JT.js";import{h as o}from"./chunk-EAH6BNBL.js";var a=new WeakMap,s=new WeakMap;function p(e){s.set(e,new Promise(t=>a.set(e,t)))}function i(e){a.get(e)()}function m(e){return o(this,null,function*(){yield n(e.el)})}export{p as a,i as b,m as c};
