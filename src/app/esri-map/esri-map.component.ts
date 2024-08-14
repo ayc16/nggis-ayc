@@ -944,7 +944,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   private SetHHConesLayer() {
     this.hhConesLayer = new FeatureLayer({
-      url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/HIstoric_Hurricane_Cones/FeatureServer",
+      //url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/HIstoric_Hurricane_Cones/FeatureServer",
+      url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/ALL_Cones/FeatureServer",
       title: "Historic Hurricanes Cones",
       refreshInterval: 5,//Refresh interval of the layer in minutes
       outFields: ["*"],//An array of field names used in the PopupTemplate. Use this property to indicate what fields are required to fully render the PopupTemplate.

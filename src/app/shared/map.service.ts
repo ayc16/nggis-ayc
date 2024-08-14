@@ -256,7 +256,7 @@ export enum FiltersType {
   PipelineSegmentNumber = 'SEGMENT_NU',
   PipelineOperator = "SDE_COMPAN",
   PipelineStatusCode = "STATUS_COD",
-  HConeAdvisory = "AdvisoryNu",//For cone layer  
+  HConeAdvisory = "AdvisoryNo"//"AdvisoryNu",//For cone layer  
 }
 
 export interface FilterList {
