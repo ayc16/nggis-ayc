@@ -7,7 +7,10 @@ import ScaleBar from "@arcgis/core/widgets/ScaleBar.js";
 import Legend from "@arcgis/core/widgets/Legend.js";
 import LabelClass from "@arcgis/core/layers/support/LabelClass.js";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol.js";
-import { FilterListUpdateNullable, FiltersType, LayersOrWidgets, LayersOrWidgetsStatus, MapFilter, MapFilterDetailsNullable, MapFilterNullable, MapService } from '../shared/map.service';
+import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
+import esriRequest from "@arcgis/core/request.js";
+
+import { FHLayer, FilterListUpdateNullable, FiltersType, LayersOrWidgets, LayersOrWidgetsStatus, MapFilter, MapFilterDetailsNullable, MapFilterNullable, MapService } from '../shared/map.service';
 import { NgxSpinnerModule, NgxSpinnerService } from 'ngx-spinner';
 import { ExcelService } from '../shared/excel.service';
 
@@ -33,9 +36,12 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   private pipelineLayer: any;
   private historicHurricaneTrackLayer: any;
   private hhConesLayer: any;
+  private forecastHurricaneLayers: any[] = [];//individual forecast layers
+  private forecastLayers: FHLayer[] = [];//individual forecast layers details from esri
+  private forecastGroupLayer: any;//forecast group layer
 
   private defaultConditionForLayer: Record<LayersOrWidgets, string | undefined> = {
-    [LayersOrWidgets.PlatformLayer]: "Latitude <> 0 AND Longitude <> 0",//ignore platform having latitude or longitude = 0
+    [LayersOrWidgets.PlatformLayer]: "Latitude <> 0 AND Longitude <> 0", //ignore platform having latitude or longitude = 0
     [LayersOrWidgets.BSEEPlatformLayer]: undefined,
     [LayersOrWidgets.Legend]: undefined,
     [LayersOrWidgets.AreaLayer]: undefined,
@@ -43,20 +49,26 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     [LayersOrWidgets.HistoricHurricaneTrackLayer]: "1=0",
     [LayersOrWidgets.None]: undefined,
     [LayersOrWidgets.PipelineLayer]: "1=1",
-    [LayersOrWidgets.HHConeLayer]: "1=0"
+    [LayersOrWidgets.HHConeLayer]: "1=0",
+    [LayersOrWidgets.ForecastGroupLayer]: "1=1"
   };
 
   // The <div> where we will place the map
   @ViewChild('mapViewNode', { static: true }) private mapViewEl!: ElementRef;
 
+  map: any;
+
   initializeMap(): Promise<any> {
     const container = this.mapViewEl.nativeElement;
     esriConfig.apiKey = "AAPKd618a22668304d46bef2738772b6593bfCyEJX_kFpN0SYkRDaQSMcopf5s2JUROU6_-R7hRCsCZzlJLDciyRkfSlNltWu6a";
+    //"AAPK72fa5c3fb7af4081905ff6ad19abb5399wBToPk_EGOX58b7MGRCMLBTs6_EbYAks0YjZQf4xkCRb1cekfloEF3ZJZbJMTkm"
     //In console do not log warnings(example : big-integer related warning[ Only integers less than 9007199254740991 (Number.MAX_SAFE_INTEGER) are supported.]) - just log errors
     esriConfig.log.level = 'error';
     const map = new Map({
       basemap: 'arcgis-topographic'
     });
+
+    this.map = map;
 
     this.view = new MapView({
       container,
@@ -124,6 +136,30 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       map.add(mainThis.hhConesLayer);
     });
 
+    this.SetForecastHurricaneLayer();
+
+    // Promise.all([this.forecastHurricaneLayers.forEach(x => x.load())]).then(function () {
+    //   map.add(mainThis.forecastGroupLayer);
+    // }).catch(function (error) {
+    //   console.error("Error loading forecast hurricane layers:", error);
+    // });
+
+    // Promise.all([this.forecastGroupLayer]).then(function () {
+    //   map.add(mainThis.forecastGroupLayer);
+    // }).catch(function (error) {
+    //   console.error("Error loading forecast hurricane layers:", error);
+    // });
+
+    // this.forecastGroupLayer.loadAll()
+    //   .catch((error: any) => {
+    //     // Ignore any failed resources
+    //     console.error("Error loading forecast hurricane layers:", error);
+    //   })
+    //   .then(() => {
+    //     console.log("All loaded");
+    //     map.add(mainThis.forecastGroupLayer);
+    //   });
+
     return this.view.when();
   }
 
@@ -173,6 +209,14 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           case LayersOrWidgets.HHConeLayer:
             if (this.hhConesLayer) {
               this.hhConesLayer.visible = status.visible;
+            }
+            break;
+          case LayersOrWidgets.ForecastGroupLayer:
+            if (this.forecastGroupLayer) {
+              this.forecastGroupLayer.visible = status.visible;
+              // this.forecastHurricaneLayers.forEach((layer) => {
+              //   layer.visible = status.visible;
+              // });
             }
             break;
           case LayersOrWidgets.PipelineLayer:
@@ -752,6 +796,10 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       layer = this.hhConesLayer;
       defaultCondition = this.defaultConditionForLayer.HHConeLayer;
     }
+    else if (filters.layerOrWidget == LayersOrWidgets.ForecastGroupLayer) {
+      layer = this.forecastHurricaneLayers;
+      defaultCondition = this.defaultConditionForLayer.ForecastGroupLayer;
+    }
 
     let finalCondition = this.getFinalFilterCondition(filters.details, defaultCondition);
     if (filters.layerOrWidget == LayersOrWidgets.HHConeLayer) {
@@ -877,6 +925,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         return this.pipelineLayer;
       case LayersOrWidgets.HHConeLayer:
         return this.hhConesLayer;
+      case LayersOrWidgets.ForecastGroupLayer:
+        return this.forecastHurricaneLayers;
     }
     return null;
   }
@@ -952,6 +1002,68 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       definitionExpression: "1=0", // Initially, set to display no features
       visible: false
     });
+  }
+
+  private SetForecastHurricaneLayer() {
+    let forecastUrl = "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/Active_Hurricanes_v1/FeatureServer";
+    let mainThis = this;
+    esriRequest(forecastUrl, {
+      responseType: "json",
+      query: {
+        f: "json"
+      }
+    }).then((response: any) => {
+      // The requested data
+      this.forecastLayers = response.data.layers;
+      console.log('forecastLayers', this.forecastLayers);
+
+      this.forecastLayers.forEach((layer: FHLayer) => {
+        var fhLayer = new FeatureLayer({
+          url: "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/Active_Hurricanes_v1/FeatureServer/" + layer.id,
+          title: layer.name,
+          outFields: ["*"],//An array of field names used in the PopupTemplate. Use this property to indicate what fields are required to fully render the PopupTemplate.
+          definitionExpression: "1=1",
+          visible: true
+        });
+        this.forecastHurricaneLayers.push(fhLayer);
+      });
+
+      this.forecastGroupLayer = new GroupLayer({
+        visibilityMode: "independent",//Each child layer manages its visibility independent from other layers.
+        title: "Forecast Hurricanes",
+        visible: false
+      });
+      this.forecastGroupLayer.layers.addMany(this.forecastHurricaneLayers);
+      this.forecastGroupLayer.loadAll()
+        .catch((error: any) => {
+          // Ignore any failed resources
+          console.error("Error loading forecast hurricane layers:", error);
+        })
+        .then(() => {
+          console.log("All loaded");
+          mainThis.map.add(mainThis.forecastGroupLayer);
+        });
+    }).catch((err) => {
+      if (err.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        console.error('Error encountered', err);
+      }
+    });
+
+    /*
+    Forecast Position (0)
+    Observed Position (1)
+    Forecast Track (2)
+    Observed Track (3)
+    Forecast Error Cone (4)
+    Watches and Warnings (5)
+    Tropical Storm Force (34kts) (7)
+    Strong Tropical Storm (50kts) (8)
+    Hurricane Force (64kts+) (9)
+    Raw 1/10th Degree Data (All) (10)
+    Observed Wind Swath (11)
+    */
   }
 
   //#endregion

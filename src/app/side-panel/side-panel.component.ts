@@ -86,6 +86,7 @@ export class SidePanelComponent {
   showPipelines = false;
   showHH_Track = false;
   showHH_Cones = false;
+  showFH = false;
 
   areaCodes: FilterList[] = [];
   blockNumbers: FilterList[] = [];
@@ -110,7 +111,8 @@ export class SidePanelComponent {
     [LayersOrWidgets.BLockLayer]: false,
     [LayersOrWidgets.None]: false,
     [LayersOrWidgets.PipelineLayer]: false,
-    [LayersOrWidgets.HHConeLayer]: false
+    [LayersOrWidgets.HHConeLayer]: false,
+    [LayersOrWidgets.ForecastGroupLayer]: false
   };
 
   toggleBlockLayer() {
@@ -241,6 +243,9 @@ export class SidePanelComponent {
     this.mapService.setMapFilterValue(FiltersType.HConeAdvisory, filteredData.map(x => x.value));
   }
 
+  toggleShowFH() {
+    this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets.ForecastGroupLayer, visible: this.showFH });
+  }
   //#endregion Hurricanes
 
 

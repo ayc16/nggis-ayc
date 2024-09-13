@@ -117,6 +117,20 @@
                     <app-dropdown-filter *ngIf="coneAdvisory.length > 0" title="Advisory" [options]="coneAdvisory" valueField="value" displayField="text" [selectedItems]="hurricaneFilterResetItems" itemsShowLimit="1" (selectedItemsChanged)="OnHConeAdvisoryFilterChanged($event)"></app-dropdown-filter>
                 </div>
             </div>
+            <div class="card rounded-0">
+                <div class="card-header">
+                    <div class="d-flex">
+                        Forecast Hurricanes
+                        <div class="ms-auto ">
+                            <div class="form-check">
+                                <input class="form-check-input squareChkbox" [(ngModel)]="showFH" (ngModelChange)="toggleShowFH()" type="checkbox" id="checkShowFH">
+                                <label class="form-check-label" for="checkShowFH"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
     <div class="d-grid gap-2 border border-primary">

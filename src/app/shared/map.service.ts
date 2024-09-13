@@ -294,6 +294,7 @@ export enum LayersOrWidgets {
   BLockLayer = "BLockLayer",
   HistoricHurricaneTrackLayer = "HistoricHurricaneTrackLayer",
   HHConeLayer = "HHConeLayer",
+  ForecastGroupLayer = "ForecastGroupLayer",
   PipelineLayer = "PipelineLayer",
   None = "None"
 }
@@ -315,4 +316,25 @@ export interface MapResultSet {
   Size: number;
   Name: string;
   Index: number;
+}
+
+export interface FHLayer {
+  // defaultVisibility: true,
+  // geometryType: "esriGeometryPoint",
+  // id: 0,
+  // maxScale: 0,
+  // minScale: 0,
+  // name: "Forecast Position",
+  // parentLayerId: -1,
+  // subLayerIds: null,
+  // type: "Feature Layer"
+  defaultVisibility: boolean,
+  geometryType: string,
+  id: number,
+  maxScale: number,
+  minScale: number,
+  name: string,
+  parentLayerId: number,
+  subLayerIds: any,
+  type: string
 }
