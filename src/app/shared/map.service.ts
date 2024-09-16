@@ -162,20 +162,25 @@ export class MapService {
     }
   }
 
+  private rHFilters: MapFilter = { layerOrWidget: LayersOrWidgets.RecentHGroupLayer, details: new MapFilterDetails() };
+  clearRHFilters() {
+    this.rHFilters.details.clear();
+    this.setMapFiltersSubject.next(this.rHFilters);
+  }
+
   private hConeLayerFilters: MapFilter = { layerOrWidget: LayersOrWidgets.HHConeLayer, details: new MapFilterDetails() };
 
   //#endregion
 
-  //#region Forecast Hurricanes
-  //FOR getting forecast sub layer list from map data
-  private FHLayerListFromMapSubject = new BehaviorSubject<FHLayerDetails[]>([]);
-  public fHLayerListFromMap$ = this.FHLayerListFromMapSubject.asObservable();
+  //#region Hurricanes
+  //FOR getting hurricane sub layer list from map data
+  private HLayerListFromMapSubject = new BehaviorSubject<HLayerDetailsListNullable>(null);
+  public hLayerListFromMap$ = this.HLayerListFromMapSubject.asObservable();
 
-  setFHLayerListFromMap(value: FHLayerDetails[]) {
-    this.FHLayerListFromMapSubject.next(value);
+  setHLayerListFromMap(value: HLayerDetailsListNullable) {
+    this.HLayerListFromMapSubject.next(value);
   }
   //#endregion
-
 
   //#region Pipeline filter
   private pipelineFilters: MapFilter = { layerOrWidget: LayersOrWidgets.PipelineLayer, details: new MapFilterDetails() };
@@ -222,6 +227,8 @@ export class MapService {
         return LayersOrWidgets.PipelineLayer;
       case FiltersType.HConeAdvisory:
         return LayersOrWidgets.HHConeLayer;
+      case FiltersType.RH_STORMNAME:
+        return LayersOrWidgets.RecentHGroupLayer;
       default:
         return LayersOrWidgets.None;
     }
@@ -241,6 +248,8 @@ export class MapService {
         return this.hConeLayerFilters;
       case LayersOrWidgets.PipelineLayer:
         return this.pipelineFilters;
+      case LayersOrWidgets.RecentHGroupLayer:
+        return this.rHFilters;
       default:
         return null;
     }
@@ -267,6 +276,7 @@ export enum FiltersType {
   PipelineOperator = "SDE_COMPAN",
   PipelineStatusCode = "STATUS_COD",
   HConeAdvisory = "AdvisoryNo",//"AdvisoryNu",//For cone layer  
+  RH_STORMNAME = "STORMNAME"//for recent hurricane layer
 }
 
 export interface FilterList {
@@ -319,6 +329,10 @@ export enum LayersOrWidgets {
   ForecastSubLayer9 = "ForecastSubLayer9",
   ForecastSubLayer10 = "ForecasSubtLayer10",
   ForecastSubLayer11 = "ForecasSubtLayer11",
+  RecentHGroupLayer = "RecentHGroupLayer",
+  RecentHSubLayer0 = "RecentHSubLayer0",
+  RecentHSubLayer1 = "RecentHSubLayer1",
+  RecentHSubLayer2 = "RecentHSubLayer2",
   None = "None",
   Sketch = "Sketch",
 }
@@ -363,3 +377,10 @@ export interface FHLayerDetails {
   type: string,
   isVisible: boolean
 }
+
+export interface HLayerDetailsList {
+  layerOrWidget: LayersOrWidgets;
+  detailedList: FHLayerDetails[];
+}
+
+export type HLayerDetailsListNullable = HLayerDetailsList | null

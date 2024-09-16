@@ -67,8 +67,15 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     [LayersOrWidgets.ForecastSubLayer10]: undefined,
     [LayersOrWidgets.ForecastSubLayer11]: undefined,
     [LayersOrWidgets.ForecastSubLayerAll]: undefined,
-    [LayersOrWidgets.Sketch]: undefined
+    [LayersOrWidgets.Sketch]: undefined,
+    [LayersOrWidgets.RecentHGroupLayer]: undefined,
+    [LayersOrWidgets.RecentHSubLayer0]: undefined,
+    [LayersOrWidgets.RecentHSubLayer1]: undefined,
+    [LayersOrWidgets.RecentHSubLayer2]: undefined
   };
+  private recentHurricaneLayers: any[] = [];//individual recent layers
+  private recentHLayersDetails: FHLayerDetails[] = [];//individual recent layers details from esri
+  private rHurricaneGroupLayer: any;
 
   //graphicsLayer
   private graphicsLayer: any;
@@ -172,6 +179,9 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.SetSketchLayer();
     map.add(this.graphicsLayer);
     this.view.ui.add(this.sketchWidget, "top-right");
+
+    this.SetRHurricaneLayer();
+
     //this.view.ui.add(this.exportBtn, "bottom-left");
 
     // var element = document.createElement('div');
@@ -325,6 +335,11 @@ export class EsriMapComponent implements OnInit, OnDestroy {
               // this.forecastHurricaneLayers.forEach((layer) => {
               //   layer.visible = status.visible;
               // });
+            }
+            break;
+          case LayersOrWidgets.RecentHGroupLayer:
+            if (this.rHurricaneGroupLayer) {
+              this.rHurricaneGroupLayer.visible = status.visible;
             }
             break;
           case LayersOrWidgets.PipelineLayer:
@@ -533,8 +548,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     };
 
     this.platformLayer = new FeatureLayer({
-      //url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/Join_Features_to_Platform_BSEE_view/FeatureServer",
-      url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/JoinLayerBSEEiSIMS/FeatureServer",
+      url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/Platform16sep_2024/FeatureServer",
       visible: true,
       title: "Platforms",
       refreshInterval: 5,//Refresh interval of the layer in minutes
@@ -741,7 +755,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       }]
     };
     this.platformsBSEELayer = new FeatureLayer({
-      url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/PlatStruc_BSEE/FeatureServer",
+      url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/Platform_BSEE_16sep/FeatureServer",
       visible: false,
       refreshInterval: 60,
       title: "Platform BSEE",
@@ -930,6 +944,10 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       layer = this.forecastHurricaneLayers;
       defaultCondition = this.defaultConditionForLayer.ForecastGroupLayer;
     }
+    else if (filters.layerOrWidget == LayersOrWidgets.RecentHGroupLayer) {
+      layer = this.rHurricaneGroupLayer;
+      defaultCondition = this.defaultConditionForLayer.RecentHGroupLayer;
+    }
 
     let finalCondition = this.getFinalFilterCondition(filters.details, defaultCondition);
     if (filters.layerOrWidget == LayersOrWidgets.HHConeLayer) {
@@ -937,6 +955,11 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     }
     else if (filters.layerOrWidget == LayersOrWidgets.PlatformLayer) {
       layer.definitionExpression = this.defaultConditionForLayer.PlatformLayer + " AND " + finalCondition;
+    }
+    else if (filters.layerOrWidget == LayersOrWidgets.RecentHGroupLayer) {
+      this.rHurricaneGroupLayer.layers.forEach((layer: any) => {
+        layer.definitionExpression = finalCondition;
+      });
     }
     else {
       layer.definitionExpression = finalCondition;
@@ -1021,6 +1044,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
             case FiltersType.PipelineOperator:
             case FiltersType.PipelineStatusCode:
             case FiltersType.HConeAdvisory:
+            case FiltersType.RH_STORMNAME:
               let condition = key.toString() + " IN ('" + value.join("', '") + "')";
               expression.push(condition);
               break;
@@ -1079,6 +1103,14 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         return this.forecastGroupLayer.layers.items[9];
       case LayersOrWidgets.ForecastSubLayer11:
         return this.forecastGroupLayer.layers.items[10];
+      case LayersOrWidgets.RecentHGroupLayer:
+        return this.rHurricaneGroupLayer;
+      case LayersOrWidgets.RecentHSubLayer0:
+        return this.rHurricaneGroupLayer.layers.items[0];
+      case LayersOrWidgets.RecentHSubLayer1:
+        return this.rHurricaneGroupLayer.layers.items[1];
+      case LayersOrWidgets.RecentHSubLayer2:
+        return this.rHurricaneGroupLayer.layers.items[2];
     }
     return null;
   }
@@ -1098,12 +1130,16 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     // }
     let layer = this.getLayerFromLayerOrWidget(layerOrWidget);
 
+    if (fieldName === FiltersType.RH_STORMNAME)
+      layer = this.rHurricaneGroupLayer.layers.items[0];
+
     layer.queryFeatures({
       where: condition,// "1=1",
       returnDistinctValues: true,
       outFields: [fieldName],
       orderByFields: [fieldName]
     }).then(function (result: any) {
+      //console.log(layerOrWidget, result);
       result.features.forEach(function (feature: any) {
         var value = feature.attributes[fieldName];
         //console.log(value, 'feature');
@@ -1123,12 +1159,14 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.getFieldDataForFilter(FiltersType.Area_Code);
     this.getFieldDataForFilter(FiltersType.Block_Number);
     this.getFieldDataForFilter(FiltersType.Bus_Asc_Name);
-    this.getFieldDataForFilter(FiltersType.operatorName, "isMainOperator = 1");
+    //this.getFieldDataForFilter(FiltersType.operatorName, "isMainOperator = 1");
+    this.getFieldDataForFilter(FiltersType.operatorName);
     this.getFieldDataForFilter(FiltersType.platformName);
     this.getFieldDataForFilter(FiltersType.HurricaneYear);
     this.getFieldDataForFilter(FiltersType.HurricaneName);
     this.getFieldDataForFilter(FiltersType.PipelineOperator);
     this.getFieldDataForFilter(FiltersType.PipelineStatusCode);
+    this.getFieldDataForFilter(FiltersType.RH_STORMNAME);
   }
 
   //#region Hurricane
@@ -1193,7 +1231,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         .then(() => {
           //console.log("All loaded");
           mainThis.map.add(mainThis.forecastGroupLayer);
-          this.mapService.setFHLayerListFromMap(mainThis.forecastLayers);
+          this.mapService.setHLayerListFromMap({ layerOrWidget: LayersOrWidgets.ForecastGroupLayer, detailedList: mainThis.forecastLayers });
         });
     }).catch((err) => {
       if (err.name === 'AbortError') {
@@ -1215,6 +1253,62 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     Hurricane Force (64kts+) (9)
     Raw 1/10th Degree Data (All) (10)
     Observed Wind Swath (11)
+    */
+  }
+
+  private SetRHurricaneLayer() {
+
+    let recentHUrl = "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/Recent_Hurricanes_v1/FeatureServer";
+    let mainThis = this;
+    esriRequest(recentHUrl, {
+      responseType: "json",
+      query: {
+        f: "json"
+      }
+    }).then((response: any) => {
+      // The requested data
+      this.recentHLayersDetails = response.data.layers;
+      //console.log(response.data.layers, 'recentHLayersDetails');
+      this.recentHLayersDetails.forEach((layer: FHLayerDetails) => {
+        layer.isVisible = true;
+        var rhLayer = new FeatureLayer({
+          url: recentHUrl + "/" + layer.id,
+          title: layer.name,
+          outFields: ["*"],//An array of field names used in the PopupTemplate. Use this property to indicate what fields are required to fully render the PopupTemplate.
+          definitionExpression: "1=1",
+          visible: true
+        });
+        this.recentHurricaneLayers.push(rhLayer);
+      });
+
+      this.rHurricaneGroupLayer = new GroupLayer({
+        visibilityMode: "independent",//Each child layer manages its visibility independent from other layers.
+        title: "Recent Hurricanes",
+        visible: false
+      });
+      this.rHurricaneGroupLayer.layers.addMany(this.recentHurricaneLayers);
+      this.rHurricaneGroupLayer.loadAll()
+        .catch((error: any) => {
+          // Ignore any failed resources
+          console.error("Error loading recent hurricane layers:", error);
+        })
+        .then(() => {
+          //console.log("All loaded");
+          mainThis.map.add(mainThis.rHurricaneGroupLayer);
+          this.mapService.setHLayerListFromMap({ layerOrWidget: LayersOrWidgets.RecentHGroupLayer, detailedList: mainThis.recentHLayersDetails });
+        });
+    }).catch((err) => {
+      if (err.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        console.error('Error encountered', err);
+      }
+    });
+
+    /*
+      Observed Position (0)
+      Observed Track (1)
+      Observed Wind Swath (2)
     */
   }
 

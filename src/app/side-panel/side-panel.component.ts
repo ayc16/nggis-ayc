@@ -34,6 +34,8 @@ export class SidePanelComponent {
         this.hasLayerFilters.HHConeLayer = hasFilter;
       else if (filters.layerOrWidget == LayersOrWidgets.PipelineLayer)
         this.hasLayerFilters.PipelineLayer = hasFilter;
+      else if (filters.layerOrWidget == LayersOrWidgets.RecentHGroupLayer)
+        this.hasLayerFilters.RecentHGroupLayer = hasFilter;
     });
     mapService.filterListFromMap$.subscribe((filters) => {
       switch (filters.type) {
@@ -71,13 +73,21 @@ export class SidePanelComponent {
           if (oldValue != this.showHH_Cones)
             this.toggleShowHH_Cone();
           break;
+        case FiltersType.RH_STORMNAME:
+          this.rHurricaneNames = filters.value;
+          break;
         default:
           break;
       }
     });
-    mapService.fHLayerListFromMap$.subscribe((list) => {
-      this.fhSubLayers = list;
-    })
+    mapService.hLayerListFromMap$.subscribe((data) => {
+      if (data) {
+        if (data?.layerOrWidget == LayersOrWidgets.ForecastGroupLayer)
+          this.fhSubLayers = data.detailedList;
+        if (data?.layerOrWidget == LayersOrWidgets.RecentHGroupLayer)
+          this.rhSubLayers = data.detailedList;
+      }
+    });
   }
 
   showBlocks = false;
@@ -86,6 +96,7 @@ export class SidePanelComponent {
   showBSEEPlatforms = false;
   platformStatus: PlatformStatus[] = [];
   showHurricaneUI = false;
+  showRecentHurricane = false;
   showPipelines = false;
   showHH_Track = false;
   showHH_Cones = false;
@@ -99,12 +110,15 @@ export class SidePanelComponent {
   platformFilterResetItems: [] = [];//AS of now we just need one for all filters to clear the selection on clear all filter button click - clearFilters()
   pipelineFilterResetItems: [] = [];//AS of now we just need one for all filters to clear the selection on clear all filter button click - clearFilters()
   hurricaneFilterResetItems = [] = [];
+  recentHFilterResetItems = [] = [];
   hurricaneYears: FilterList[] = [];
   hurricaneNames: FilterList[] = [];
   pipelineOperators: FilterList[] = [];
   pipelineStatusCodes: FilterList[] = [];
   coneAdvisory: FilterList[] = [];
+  rHurricaneNames: FilterList[] = [];
   fhSubLayers: FHLayerDetails[] = [];
+  rhSubLayers: FHLayerDetails[] = [];
 
   hasLayerFilters: Record<LayersOrWidgets, Partial<boolean>> = {
     [LayersOrWidgets.PlatformLayer]: false,
@@ -129,7 +143,11 @@ export class SidePanelComponent {
     [LayersOrWidgets.ForecastSubLayer10]: false,
     [LayersOrWidgets.ForecastSubLayer11]: false,
     [LayersOrWidgets.ForecastSubLayerAll]: false,
-    [LayersOrWidgets.Sketch]: false
+    [LayersOrWidgets.Sketch]: false,
+    [LayersOrWidgets.RecentHGroupLayer]: false,
+    [LayersOrWidgets.RecentHSubLayer0]: false,
+    [LayersOrWidgets.RecentHSubLayer1]: false,
+    [LayersOrWidgets.RecentHSubLayer2]: false
   };
 
   toggleBlockLayer() {
@@ -247,6 +265,11 @@ export class SidePanelComponent {
     this.mapService.setMapFilterValue(FiltersType.HurricaneName, filteredData.map(x => x.value));
   }
 
+  OnRHNamesFilterChanged($event: any) {
+    var filteredData: FilterList[] = $event;
+    this.mapService.setMapFilterValue(FiltersType.RH_STORMNAME, filteredData.map(x => x.value));
+  }
+
   toggleShowHH_Track() {
     this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets.HistoricHurricaneTrackLayer, visible: this.showHH_Track });
   }
@@ -269,6 +292,23 @@ export class SidePanelComponent {
     let layerName = "ForecastSubLayer" + layer.id;
     let layerWidget = layerName as keyof typeof LayersOrWidgets;
     this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets[layerWidget], visible: layer.isVisible })
+  }
+
+  toggleRecentHLayer() {
+    this.showRecentHurricane = !this.showRecentHurricane;
+    this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets.RecentHGroupLayer, visible: this.showRecentHurricane });
+  }
+
+  toggleShowRHlayer(layer: any) {
+    layer.isVisible = !layer.isVisible;
+    let layerName = "RecentHSubLayer" + layer.id;
+    let layerWidget = layerName as keyof typeof LayersOrWidgets;
+    this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets[layerWidget], visible: layer.isVisible })
+  }
+
+  clearRHFilters() {
+    this.mapService.clearRHFilters();
+    this.recentHFilterResetItems = [];
   }
   //#endregion Hurricanes
 
