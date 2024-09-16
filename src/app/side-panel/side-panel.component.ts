@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FilterList, FiltersType, LayersOrWidgets, MapResultSet, MapService, PlatformStatus } from '../shared/map.service';
+import { FHLayerDetails, FilterList, FiltersType, LayersOrWidgets, MapResultSet, MapService, PlatformStatus } from '../shared/map.service';
 import { DropdownFilterComponent } from '../shared/dropdown-filter/dropdown-filter.component';
 import { NumericFilterComponent } from '../shared/numeric-filter/numeric-filter.component';
 import { DateFilterComponent } from "../shared/date-filter/date-filter.component";
@@ -75,6 +75,9 @@ export class SidePanelComponent {
           break;
       }
     });
+    mapService.fHLayerListFromMap$.subscribe((list) => {
+      this.fhSubLayers = list;
+    })
   }
 
   showBlocks = false;
@@ -101,6 +104,7 @@ export class SidePanelComponent {
   pipelineOperators: FilterList[] = [];
   pipelineStatusCodes: FilterList[] = [];
   coneAdvisory: FilterList[] = [];
+  fhSubLayers: FHLayerDetails[] = [];
 
   hasLayerFilters: Record<LayersOrWidgets, Partial<boolean>> = {
     [LayersOrWidgets.PlatformLayer]: false,
@@ -112,7 +116,20 @@ export class SidePanelComponent {
     [LayersOrWidgets.None]: false,
     [LayersOrWidgets.PipelineLayer]: false,
     [LayersOrWidgets.HHConeLayer]: false,
-    [LayersOrWidgets.ForecastGroupLayer]: false
+    [LayersOrWidgets.ForecastGroupLayer]: false,
+    [LayersOrWidgets.ForecastSubLayer0]: false,
+    [LayersOrWidgets.ForecastSubLayer1]: false,
+    [LayersOrWidgets.ForecastSubLayer2]: false,
+    [LayersOrWidgets.ForecastSubLayer3]: false,
+    [LayersOrWidgets.ForecastSubLayer4]: false,
+    [LayersOrWidgets.ForecastSubLayer5]: false,
+    [LayersOrWidgets.ForecastSubLayer7]: false,
+    [LayersOrWidgets.ForecastSubLayer8]: false,
+    [LayersOrWidgets.ForecastSubLayer9]: false,
+    [LayersOrWidgets.ForecastSubLayer10]: false,
+    [LayersOrWidgets.ForecastSubLayer11]: false,
+    [LayersOrWidgets.ForecastSubLayerAll]: false,
+    [LayersOrWidgets.Sketch]: false
   };
 
   toggleBlockLayer() {
@@ -246,8 +263,14 @@ export class SidePanelComponent {
   toggleShowFH() {
     this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets.ForecastGroupLayer, visible: this.showFH });
   }
-  //#endregion Hurricanes
 
+  toggleShowFHlayer(layer: any) {
+    layer.isVisible = !layer.isVisible;
+    let layerName = "ForecastSubLayer" + layer.id;
+    let layerWidget = layerName as keyof typeof LayersOrWidgets;
+    this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets[layerWidget], visible: layer.isVisible })
+  }
+  //#endregion Hurricanes
 
   //#region Pipelines
   togglePipelineLayer() {

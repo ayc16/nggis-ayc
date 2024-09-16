@@ -129,6 +129,18 @@
                         </div>
                     </div>
                 </div>
+                <div class="card-body d-grid gap-2" *ngIf="showFH">
+                    <div *ngFor="let layer of fhSubLayers">
+                        <i class="fa text-primary me-2" title="visibility" [ngClass]="{
+                          'fa-eye-slash': !layer.isVisible,
+                          'fa-eye': layer.isVisible
+                        }" (click)="toggleShowFHlayer(layer)"></i>{{layer.name}}
+                        <!-- <div class="form-check">
+                            <input class="form-check-input squareChkbox" [(ngModel)]="layer.isVisible" (ngModelChange)="toggleShowFHlayer(layer)" type="checkbox" id="checkShowfH_{{layer.id}}">
+                            <label class="form-check-label" for="checkShowHH_{{layer.id}}">{{layer.name}}</label>
+                        </div> -->
+                    </div>
+                </div>
             </div>
 
         </div>

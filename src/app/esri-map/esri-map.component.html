@@ -1,2 +1,9 @@
 <!-- Map Div -->
 <div #mapViewNode></div>
+
+<div id="sketchActions" class="d-flex">
+    <div (click)="ExportFeatures()" title="Download Platforms" class="esri-icon-download esri-widget--button esri-widget esri-interactive">
+    </div>
+    <div (click)="ClearSketch()" title="Clear Sketch" class="esri-icon-erase esri-widget--button esri-widget esri-interactive">
+    </div>
+</div>

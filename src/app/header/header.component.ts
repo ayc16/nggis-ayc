@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 })
 export class HeaderComponent {
   showLegend = true;
+  showSketch = true;
 
   constructor(private mapService: MapService) {
 
@@ -20,5 +21,8 @@ export class HeaderComponent {
     this.showLegend = !this.showLegend;
     this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets.Legend, visible: this.showLegend });
   }
-
+  toggleSketch() {
+    this.showSketch = !this.showSketch;
+    this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets.Sketch, visible: this.showSketch });
+  }
 }

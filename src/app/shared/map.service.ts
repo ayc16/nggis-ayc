@@ -166,6 +166,16 @@ export class MapService {
 
   //#endregion
 
+  //#region Forecast Hurricanes
+  //FOR getting forecast sub layer list from map data
+  private FHLayerListFromMapSubject = new BehaviorSubject<FHLayerDetails[]>([]);
+  public fHLayerListFromMap$ = this.FHLayerListFromMapSubject.asObservable();
+
+  setFHLayerListFromMap(value: FHLayerDetails[]) {
+    this.FHLayerListFromMapSubject.next(value);
+  }
+  //#endregion
+
 
   //#region Pipeline filter
   private pipelineFilters: MapFilter = { layerOrWidget: LayersOrWidgets.PipelineLayer, details: new MapFilterDetails() };
@@ -256,7 +266,7 @@ export enum FiltersType {
   PipelineSegmentNumber = 'SEGMENT_NU',
   PipelineOperator = "SDE_COMPAN",
   PipelineStatusCode = "STATUS_COD",
-  HConeAdvisory = "AdvisoryNo"//"AdvisoryNu",//For cone layer  
+  HConeAdvisory = "AdvisoryNo",//"AdvisoryNu",//For cone layer  
 }
 
 export interface FilterList {
@@ -296,7 +306,21 @@ export enum LayersOrWidgets {
   HHConeLayer = "HHConeLayer",
   ForecastGroupLayer = "ForecastGroupLayer",
   PipelineLayer = "PipelineLayer",
-  None = "None"
+  ForecastSubLayerAll = "ForecastSubLayerAll",
+  ForecastSubLayer0 = "ForecastSubLayer0",
+  ForecastSubLayer1 = "ForecastSubLayer1",
+  ForecastSubLayer2 = "ForecastSubLayer2",
+  ForecastSubLayer3 = "ForecastSubLayer3",
+  ForecastSubLayer4 = "ForecastSubLayer4",
+  ForecastSubLayer5 = "ForecastSubLayer5",
+  //ForecastSubLayer6 = "ForecastSubLayer6",//not used in forecast hurricanes
+  ForecastSubLayer7 = "ForecastSubLayer7",
+  ForecastSubLayer8 = "ForecastSubLayer8",
+  ForecastSubLayer9 = "ForecastSubLayer9",
+  ForecastSubLayer10 = "ForecasSubtLayer10",
+  ForecastSubLayer11 = "ForecasSubtLayer11",
+  None = "None",
+  Sketch = "Sketch",
 }
 
 export class MapFilterDetails extends Map<FiltersType, any> { };
@@ -318,7 +342,7 @@ export interface MapResultSet {
   Index: number;
 }
 
-export interface FHLayer {
+export interface FHLayerDetails {
   // defaultVisibility: true,
   // geometryType: "esriGeometryPoint",
   // id: 0,
@@ -336,5 +360,6 @@ export interface FHLayer {
   name: string,
   parentLayerId: number,
   subLayerIds: any,
-  type: string
+  type: string,
+  isVisible: boolean
 }

@@ -9,22 +9,26 @@ import LabelClass from "@arcgis/core/layers/support/LabelClass.js";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol.js";
 import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
 import esriRequest from "@arcgis/core/request.js";
+import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
+import Sketch from "@arcgis/core/widgets/Sketch";
+import * as geometryEngineAsync from "@arcgis/core/geometry/geometryEngineAsync"
 
-import { FHLayer, FilterListUpdateNullable, FiltersType, LayersOrWidgets, LayersOrWidgetsStatus, MapFilter, MapFilterDetailsNullable, MapFilterNullable, MapService } from '../shared/map.service';
+import { FHLayerDetails, FilterListUpdateNullable, FiltersType, LayersOrWidgets, LayersOrWidgetsStatus, MapFilter, MapFilterDetailsNullable, MapFilterNullable, MapService } from '../shared/map.service';
 import { NgxSpinnerModule, NgxSpinnerService } from 'ngx-spinner';
 import { ExcelService } from '../shared/excel.service';
+import { ToastrModule, ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-esri-map',
   standalone: true,
-  imports: [NgxSpinnerModule],
+  imports: [NgxSpinnerModule, ToastrModule],
   templateUrl: './esri-map.component.html',
   styleUrl: './esri-map.component.scss',
   encapsulation: ViewEncapsulation.None,
 })
 export class EsriMapComponent implements OnInit, OnDestroy {
   public view: any = null;
-  constructor(private mapService: MapService, private spinnerService: NgxSpinnerService, private excelService: ExcelService) {
+  constructor(private mapService: MapService, private spinnerService: NgxSpinnerService, private excelService: ExcelService, private toastr: ToastrService) {
   }
 
   private mapReady = false;
@@ -37,7 +41,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   private historicHurricaneTrackLayer: any;
   private hhConesLayer: any;
   private forecastHurricaneLayers: any[] = [];//individual forecast layers
-  private forecastLayers: FHLayer[] = [];//individual forecast layers details from esri
+  private forecastLayers: FHLayerDetails[] = [];//individual forecast layers details from esri
   private forecastGroupLayer: any;//forecast group layer
 
   private defaultConditionForLayer: Record<LayersOrWidgets, string | undefined> = {
@@ -50,8 +54,26 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     [LayersOrWidgets.None]: undefined,
     [LayersOrWidgets.PipelineLayer]: "1=1",
     [LayersOrWidgets.HHConeLayer]: "1=0",
-    [LayersOrWidgets.ForecastGroupLayer]: "1=1"
+    [LayersOrWidgets.ForecastGroupLayer]: "1=1",
+    [LayersOrWidgets.ForecastSubLayer0]: undefined,
+    [LayersOrWidgets.ForecastSubLayer1]: undefined,
+    [LayersOrWidgets.ForecastSubLayer2]: undefined,
+    [LayersOrWidgets.ForecastSubLayer3]: undefined,
+    [LayersOrWidgets.ForecastSubLayer4]: undefined,
+    [LayersOrWidgets.ForecastSubLayer5]: undefined,
+    [LayersOrWidgets.ForecastSubLayer7]: undefined,
+    [LayersOrWidgets.ForecastSubLayer8]: undefined,
+    [LayersOrWidgets.ForecastSubLayer9]: undefined,
+    [LayersOrWidgets.ForecastSubLayer10]: undefined,
+    [LayersOrWidgets.ForecastSubLayer11]: undefined,
+    [LayersOrWidgets.ForecastSubLayerAll]: undefined,
+    [LayersOrWidgets.Sketch]: undefined
   };
+
+  //graphicsLayer
+  private graphicsLayer: any;
+  private sketchWidget: any;
+  private platformLayerView: any;
 
   // The <div> where we will place the map
   @ViewChild('mapViewNode', { static: true }) private mapViewEl!: ElementRef;
@@ -107,7 +129,6 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.SetBlockLayer();
     this.SetBSEEPlatformLayer();
     this.SetPipelineLayer();
-
     var mainThis = this;
     // Once the layers are loaded, add them to the map
     Promise.all([this.areaLayer.load(), this.blockLayer.load(), this.platformsBSEELayer.load()]).then(function () {
@@ -126,6 +147,16 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.SetMainPlatformLayer();
     map.add(this.platformLayer);
 
+    this.platformLayer
+      .when(() => {
+        this.view.whenLayerView(this.platformLayer).then(function (layerView: any) {
+          mainThis.platformLayerView = layerView;
+        });
+      })
+      .catch((error: any) => {
+        console.log('view platformLayer error', error);
+      });
+
     this.SetHistoricHurricaneLayer();
     this.historicHurricaneTrackLayer.load().then(function () {
       map.add(mainThis.historicHurricaneTrackLayer);
@@ -137,6 +168,22 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     });
 
     this.SetForecastHurricaneLayer();
+
+    this.SetSketchLayer();
+    map.add(this.graphicsLayer);
+    this.view.ui.add(this.sketchWidget, "top-right");
+    //this.view.ui.add(this.exportBtn, "bottom-left");
+
+    // var element = document.createElement('div');
+    // element.title = "download platforms";
+    // element.id = "downloadSketchF";
+    // element.className = "esri-icon-download esri-widget--button esri-widget esri-interactive";
+    // element.addEventListener('click', function (evt) {
+    //   mainThis.ExportFeatures();
+    // })
+
+    // this.view.ui.add(element, "top-right");
+    this.view.ui.add("sketchActions", "top-right");
 
     // Promise.all([this.forecastHurricaneLayers.forEach(x => x.load())]).then(function () {
     //   map.add(mainThis.forecastGroupLayer);
@@ -161,6 +208,67 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     //   });
 
     return this.view.when();
+  }
+
+  ClearSketch() {
+    this.graphicsLayer.removeAll();
+  }
+
+  async ExportFeatures() {
+    const graphics = this.graphicsLayer.graphics.items;
+    const geometries = graphics.map(function (graphic: any) {
+      return graphic.geometry;
+    });
+    const queryGeometry = await geometryEngineAsync.union(geometries);
+    if (this.platformLayerView) {
+      const queryView = {
+        geometry: queryGeometry,
+        outFields: ["*"]
+      };
+
+      this.platformLayerView
+        .queryFeatures(queryView)
+        .then((results: any) => {
+          console.log(results, 'results from sketch');
+          if (results.features && results.features.length === 0) {
+            console.log('no features');
+            this.toastr.warning("No Platform inside the sketch", "Results from sketch");
+          } else {
+            results.features.forEach((feature: any) => {
+              //console.log(feature,'feature...');
+            });
+
+            let header = Object.keys(results.features[0].attributes);
+            let datas = [];
+            for (let i = 0; i < results.features.length; i++) {
+              datas.push(results.features[i].attributes);
+            }
+            this.excelService.ExportDataExcel(datas, header, "Platforms");
+          }
+        })
+        .catch((error: any) => {
+          console.log("error while downloading sketched feature:", error);
+        });
+    }
+  }
+
+  SetSketchLayer() {
+
+    this.graphicsLayer = new GraphicsLayer({ title: "graphicsLayer" });
+
+    // setup the Sketch widget with all snapping enabled by default
+    this.sketchWidget = new Sketch({
+      layer: this.graphicsLayer,
+      view: this.view,
+      // graphic will be selected as soon as it is created
+      creationMode: "update",
+      snappingOptions: {  // autocasts as SnappingOptions()
+        enabled: true,
+        selfEnabled: false,
+        // enable snapping on the graphicslayer by default
+        featureSources: [{ layer: this.graphicsLayer, enabled: true }]
+      }
+    });
   }
 
   ngOnInit() {
@@ -221,13 +329,30 @@ export class EsriMapComponent implements OnInit, OnDestroy {
             break;
           case LayersOrWidgets.PipelineLayer:
             if (this.pipelineLayer) {
-
               if (status.visible == true)
                 this.showLoading(this.pipelineLayer);
               this.pipelineLayer.visible = status.visible;
             }
             break;
+          case LayersOrWidgets.ForecastSubLayerAll:
+            if (this.forecastGroupLayer.layers.items) {
+              this.forecastGroupLayer.layers.items.forEach((layer: any) => {
+                layer.visible = status.visible;
+              });
+            }
+            break;
+          case LayersOrWidgets.Sketch:
+            if (this.sketchWidget) {
+              this.sketchWidget.visible = status.visible;
+              var downloadBtn = document.getElementById('sketchActions');
+              if (downloadBtn)
+                downloadBtn.style.display = status.visible ? 'flex' : 'none';
+            }
+            break;
           default:
+            let resultLayer = this.getLayerFromLayerOrWidget(status.type);
+            if (resultLayer)
+              resultLayer.visible = status.visible;
             break;
         }
       });
@@ -267,14 +392,19 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       outFields: ["*"],
       orderByFields: [FiltersType.platformName]
     }).then(function (result: any) {
-      let header = Object.keys(result.features[0].attributes);
 
-      let datas = [];
-      for (let i = 0; i < result.features.length; i++) {
-        datas.push(result.features[i].attributes);
+      if (result.features && result.features.length > 0) {
+        let header = Object.keys(result.features[0].attributes);
+
+        let datas = [];
+        for (let i = 0; i < result.features.length; i++) {
+          datas.push(result.features[i].attributes);
+        }
+        mainThis.excelService.ExportDataExcel(datas, header, "FilteredData");
       }
-
-      mainThis.excelService.ExportDataExcel(datas, header, "FilteredData");
+      else {
+        mainThis.toastr.warning('No data to export', 'NO DATA');
+      }
     });
   }
 
@@ -927,6 +1057,28 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         return this.hhConesLayer;
       case LayersOrWidgets.ForecastGroupLayer:
         return this.forecastHurricaneLayers;
+      case LayersOrWidgets.ForecastSubLayer0:
+        return this.forecastGroupLayer.layers.items[0];
+      case LayersOrWidgets.ForecastSubLayer1:
+        return this.forecastGroupLayer.layers.items[1];
+      case LayersOrWidgets.ForecastSubLayer2:
+        return this.forecastGroupLayer.layers.items[2];
+      case LayersOrWidgets.ForecastSubLayer3:
+        return this.forecastGroupLayer.layers.items[3];
+      case LayersOrWidgets.ForecastSubLayer4:
+        return this.forecastGroupLayer.layers.items[4];
+      case LayersOrWidgets.ForecastSubLayer5:
+        return this.forecastGroupLayer.layers.items[5];
+      case LayersOrWidgets.ForecastSubLayer7:
+        return this.forecastGroupLayer.layers.items[6];
+      case LayersOrWidgets.ForecastSubLayer8:
+        return this.forecastGroupLayer.layers.items[7];
+      case LayersOrWidgets.ForecastSubLayer9:
+        return this.forecastGroupLayer.layers.items[8];
+      case LayersOrWidgets.ForecastSubLayer10:
+        return this.forecastGroupLayer.layers.items[9];
+      case LayersOrWidgets.ForecastSubLayer11:
+        return this.forecastGroupLayer.layers.items[10];
     }
     return null;
   }
@@ -971,7 +1123,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.getFieldDataForFilter(FiltersType.Area_Code);
     this.getFieldDataForFilter(FiltersType.Block_Number);
     this.getFieldDataForFilter(FiltersType.Bus_Asc_Name);
-    this.getFieldDataForFilter(FiltersType.operatorName);
+    this.getFieldDataForFilter(FiltersType.operatorName, "isMainOperator = 1");
     this.getFieldDataForFilter(FiltersType.platformName);
     this.getFieldDataForFilter(FiltersType.HurricaneYear);
     this.getFieldDataForFilter(FiltersType.HurricaneName);
@@ -1015,9 +1167,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     }).then((response: any) => {
       // The requested data
       this.forecastLayers = response.data.layers;
-      console.log('forecastLayers', this.forecastLayers);
-
-      this.forecastLayers.forEach((layer: FHLayer) => {
+      this.forecastLayers.forEach((layer: FHLayerDetails) => {
+        layer.isVisible = true;
         var fhLayer = new FeatureLayer({
           url: "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/Active_Hurricanes_v1/FeatureServer/" + layer.id,
           title: layer.name,
@@ -1040,8 +1191,9 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           console.error("Error loading forecast hurricane layers:", error);
         })
         .then(() => {
-          console.log("All loaded");
+          //console.log("All loaded");
           mainThis.map.add(mainThis.forecastGroupLayer);
+          this.mapService.setFHLayerListFromMap(mainThis.forecastLayers);
         });
     }).catch((err) => {
       if (err.name === 'AbortError') {
