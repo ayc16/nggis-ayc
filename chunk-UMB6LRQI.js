@@ -1,1 +1,0 @@
-import{h as a}from"./chunk-EAH6BNBL.js";function t(r,e){return a(this,null,function*(){let{WhereClause:n}=yield import("./chunk-EKJFMQMW.js");return n.create(r,e)})}function s(r,e){return r!=null&&r!==""?e!=null&&e!==""?`(${r}) AND (${e})`:r:e}export{t as a,s as b};

@@ -1,0 +1,1 @@
+import{a as s}from"./chunk-RHABF3KL.js";var t=class{constructor(a,e,r,i,n=null){if(this.name=a,this.type=e,this.arraySize=n,this.bind={[s.Pass]:null,[s.Draw]:null},i)switch(r){case s.Pass:this.bind[s.Pass]=i;break;case s.Draw:this.bind[s.Draw]=i}}equals(a){return this.type===a.type&&this.name===a.name&&this.arraySize===a.arraySize}};export{t as a};
