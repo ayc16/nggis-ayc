@@ -229,7 +229,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       this.platformLayerView
         .queryFeatures(queryView)
         .then((results: any) => {
-          console.log(results, 'results from sketch');
+          //console.log(results, 'results from sketch');
           if (results.features && results.features.length === 0) {
             console.log('no features');
             this.toastr.warning("No Platform inside the sketch", "Results from sketch");
