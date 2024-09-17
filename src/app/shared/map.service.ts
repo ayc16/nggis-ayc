@@ -260,16 +260,17 @@ export class MapService {
 //Platform filter types
 export enum FiltersType {
   None = 'None',
-  ActiveStatus = 'ActiveStatus',//filter from BSEE field-need to add ActiveStatus field to BSEE layer
-  Area_Code = 'Area_Code',
-  Block_Number = 'Block_Number',
-  Bus_Asc_Name = 'Bus_Asc_Name',//BSEE Operator
-  operatorName = 'operatorName',//Isims Operator
-  platformName = 'PlatformName',//filter from BSEE field-need to add PlatformName field to BSEE layer
-  Water_Depth__feet_ = 'Water_Depth__feet_',
-  Install_Date = 'Install_Date',
-  Removal_Date = 'Removal_Date',
-  Complex_Id_Num = 'Complex_Id_Num',
+  ActiveStatus = 'activeStatus',//filter from BSEE field-need to add ActiveStatus field to BSEE layer
+  Area_Code = 'area_Code',
+  Block_Number = 'block_Number',
+  Bus_Asc_Name = 'bus_Asc_Name',//BSEE Operator
+  operatorName = 'i_OperatorName',//Isims Operator
+  platformName = 'platformName',//filter from BSEE field-need to add PlatformName field to BSEE layer
+  Water_Depth__feet_ = 'water_Depth__feet_',
+  Install_Date = 'install_Date',
+  Removal_Date = 'removal_Date',
+  Complex_Id_Num = 'complex_Id_Num',
+
   HurricaneYear = 'year',//For Hurricane
   HurricaneName = 'NAME',//For Hurricane
   PipelineSegmentNumber = 'SEGMENT_NU',

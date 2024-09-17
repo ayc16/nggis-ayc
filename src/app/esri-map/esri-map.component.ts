@@ -17,6 +17,7 @@ import { FHLayerDetails, FilterListUpdateNullable, FiltersType, LayersOrWidgets,
 import { NgxSpinnerModule, NgxSpinnerService } from 'ngx-spinner';
 import { ExcelService } from '../shared/excel.service';
 import { ToastrModule, ToastrService } from 'ngx-toastr';
+import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
 
 @Component({
   selector: 'app-esri-map',
@@ -45,7 +46,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   private forecastGroupLayer: any;//forecast group layer
 
   private defaultConditionForLayer: Record<LayersOrWidgets, string | undefined> = {
-    [LayersOrWidgets.PlatformLayer]: "Latitude <> 0 AND Longitude <> 0", //ignore platform having latitude or longitude = 0
+    [LayersOrWidgets.PlatformLayer]: "latitude <> 0 AND longitude <> 0", //ignore platform having latitude or longitude = 0
+    //[LayersOrWidgets.PlatformLayer]: "1=1", //ignore platform having latitude or longitude = 0
     [LayersOrWidgets.BSEEPlatformLayer]: undefined,
     [LayersOrWidgets.Legend]: undefined,
     [LayersOrWidgets.AreaLayer]: undefined,
@@ -193,7 +195,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     // })
 
     // this.view.ui.add(element, "top-right");
-    this.view.ui.add("sketchActions", "top-right");
+    this.view.ui.add("sketchPanel", "top-right");
 
     // Promise.all([this.forecastHurricaneLayers.forEach(x => x.load())]).then(function () {
     //   map.add(mainThis.forecastGroupLayer);
@@ -359,9 +361,9 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           case LayersOrWidgets.Sketch:
             if (this.sketchWidget) {
               this.sketchWidget.visible = status.visible;
-              var downloadBtn = document.getElementById('sketchActions');
+              var downloadBtn = document.getElementById('sketchPanel');
               if (downloadBtn)
-                downloadBtn.style.display = status.visible ? 'flex' : 'none';
+                downloadBtn.style.display = status.visible ? 'block' : 'none';
             }
             break;
           default:
@@ -526,18 +528,18 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       legendOptions: {
         title: "Business Asc Name"
       },
-      field: "Bus_asc_name", // Use Bus_asc_name field for differentiating values
+      field: "bus_Asc_Name", // Use bus_Asc_Name field for differentiating values
       defaultLabel: "Active",// "Other Operators",
       valueExpression: `
-      var Bus_asc_name = $feature.Bus_Asc_Name;
-      var Removal_Date = $feature.Removal_Date;
+      var bus_Asc_Name = $feature.bus_Asc_Name;
+      var removal_Date = $feature.removal_Date;
       var today_date = Today();
-      var diff = DateDiff(today_date, Removal_Date, 'days');
+      var diff = DateDiff(today_date, removal_Date, 'days');
 
       if (diff > 0) {
         return 'Removed';
       } else {
-        return Bus_asc_name;
+        return bus_Asc_Name;
       }
     `,
       defaultSymbol: {
@@ -547,8 +549,11 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       uniqueValueInfos: uniqueValueInfos
     };
 
-    this.platformLayer = new FeatureLayer({
-      url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/Platform16sep_2024/FeatureServer",
+    this.platformLayer = new GeoJSONLayer({
+      url: "https://coxinspectionserver.azurewebsites.net/api/GIS/gisplatformsgeojoined",
+      customParameters: {
+        format: "geojson",
+      },
       visible: true,
       title: "Platforms",
       refreshInterval: 5,//Refresh interval of the layer in minutes
@@ -564,7 +569,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   private getPlatformPopupTemplate() {
     // Define the popup template
     var popupTemplate = {
-      title: "<span style='color: orange;'>Platform : {Area_Code} {Block_Number} {Structure_Name}</span>",
+      title: "<span style='color: orange;'>Platform : {area_Code} {block_Number} {structure_Name}</span>",
       content: `
       <table class="esri-widget__table" style="width:100%">
           <tr>
@@ -574,152 +579,152 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           </tr>
           <tr>
               <td>Complex Id Num</td>
-              <td>{Complex_Id_Num}</td>
-              <td>{cpxid}</td>
+              <td>{complex_Id_Num}</td>
+              <td>{i_Cpxid}</td>
           </tr>
           <tr>
               <td>Structure Number</td>
-              <td>{Structure_Number}</td>
-              <td>{stn}</td>
+              <td>{structure_Number}</td>
+              <td>{i_Stn}</td>
           </tr>
           <tr>
               <td>Bus Asc Name</td>
-              <td>{Bus_Asc_Name}</td>
-              <td>{operatorName}</td>
+              <td>{bus_Asc_Name}</td>
+              <td>{i_OperatorName}</td>
           </tr>
           <tr>
               <td>Platform Name</td>
-              <td>{PlatformName}</td>
-              <td>{platformname}</td>
+              <td>{platformName}</td>
+              <td>{i_Platformname}</td>
           </tr>
           <tr>
               <td>Water Depth (feet)</td>
-              <td>{Water_Depth__feet_}</td>
-              <td>{wd}</td>
+              <td>{water_Depth__feet_}</td>
+              <td>{i_Wd}</td>
           </tr>
           <tr>
               <td>Authority Number</td>
-              <td>{Authority_Number}</td>
-              <td>{authnum}</td>
+              <td>{authority_Number}</td>
+              <td>{i_AUTHNUM}</td>
           </tr>
           <tr>
               <td>Authority Status</td>
-              <td>{Authority_Status}</td>
-              <td>{authstatus}</td>
+              <td>{authority_Status}</td>
+              <td>{i_AUTHSTATUS}</td>
           </tr>
           <tr>
               <td>Authority Type</td>
-              <td>{Authority_Type}</td>
-              <td>{authtyp}</td>
+              <td>{authority_Type}</td>
+              <td>{i_AUTHTYP}</td>
           </tr>
           <tr>
               <td>Install Date</td>
-              <td>{Install_Date}</td>
-              <td>{installDate}</td>
+              <td>{install_Date}</td>
+              <td>{i_InstallDate}</td>
           </tr>
           <tr>
               <td>Attended 8 Hr</td>
-              <td>{Attended_8_Hr}</td>
-              <td>{isAttendedEighthHours}</td>
+              <td>{attended_8_Hr}</td>
+              <td>{i_IsAttendedEighthHours}</td>
           </tr>
           <tr>
               <td>Heliport Flag</td>
-              <td>{Heliport_Flag}</td>
-              <td>{hasHeliport}</td>
+              <td>{heliport_Flag}</td>
+              <td>{i_HasHeliport}</td>
           </tr>
           <tr>
               <td>District Code</td>
-              <td>{District_Code}</td>
-              <td>{districtCode}</td>
+              <td>{district_Code}</td>
+              <td>{i_DistrictCode}</td>
           </tr>
           <tr>
               <td>Field</td>
-              <td>{Field}</td>
+              <td>{field}</td>
               <td></td>
           </tr>
           <tr>
               <td>INCs</td>
-              <td>{INCs}</td>
+              <td>{iNCs}</td>
               <td></td>
           </tr>
           <tr>
               <td>Latitude</td>
-              <td>{Latitude}</td>
               <td>{latitude}</td>
+              <td>{i_Latitude}</td>
           </tr>
           <tr>
               <td>Lease Number</td>
-              <td>{Lease_Number}</td>
+              <td>{lease_Number}</td>
               <td></td>
           </tr>
           <tr>
               <td>Longitude</td>
-              <td>{Longitude}</td>
               <td>{longitude}</td>
+              <td>{i_Longitude}</td>
           </tr>
           <tr>
               <td>Maj Struc Flag</td>
-              <td>{Maj_Struc_Flag}</td>
-              <td>{isMajorStructure}</td>
+              <td>{maj_Struc_Flag}</td>
+              <td>{i_IsMajorStructure}</td>
           </tr>
           <tr>
               <td>Manned 24 Hr</td>
-              <td>{Manned_24_Hr}</td>
+              <td>{manned_24_Hr}</td>
               <td></td>
           </tr>
           <tr>
               <td>Nad Year Cd</td>
-              <td>{Nad_Year_Cd}</td>
+              <td>{nad_Year_Cd}</td>
               <td></td>
           </tr>
           <tr>
               <td>Proj Code</td>
-              <td>{Proj_Code}</td>
+              <td>{proj_Code}</td>
               <td></td>
           </tr>
           <tr>
               <td>Ptfrm X Location</td>
-              <td>{Ptfrm_X_Location}</td>
+              <td>{ptfrm_X_Location}</td>
               <td></td>
           </tr>
           <tr>
               <td>Ptfrm Y Location</td>
-              <td>{Ptfrm_Y_Location}</td>
+              <td>{ptfrm_Y_Location}</td>
               <td></td>
           </tr>
           <tr>
               <td>Removal Date</td>
-              <td>{Removal_Date}</td>
-              <td>{removalDate}</td>
+              <td>{removal_Date}</td>
+              <td>{i_RemovalDate}</td>
           </tr>
           <tr>
               <td>Site Clear Date</td>
-              <td>{Site_Clear_Date}</td>
+              <td>{site_Clear_Date}</td>
               <td></td>
           </tr>
           <tr>
               <td>Struc Type Code</td>
-              <td>{Struc_Type_Code}</td>
+              <td>{struc_Type_Code}</td>
               <td></td>
           </tr>
           <tr>
               <td>Surf E W Code</td>
-              <td>{Surf_E_W_Code}</td>
+              <td>{surf_E_W_Code}</td>
               <td></td>
           </tr>
           <tr>
               <td>Surf E W Dist</td>
-              <td>{Surf_E_W_Dist}</td>
+              <td>{surf_E_W_Dist}</td>
               <td></td>
           </tr>
           <tr>
               <td>Surf N S Code</td>
-              <td>{Surf_N_S_Code}</td>
+              <td>{surf_N_S_Code}</td>
               <td></td>
           </tr>
           <tr>
               <td>Surf N S Dist</td>
-              <td>{Surf_N_S_Dist}</td>
+              <td>{surf_N_S_Dist}</td>
               <td></td>
           </tr>
       </table>
@@ -945,7 +950,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       defaultCondition = this.defaultConditionForLayer.ForecastGroupLayer;
     }
     else if (filters.layerOrWidget == LayersOrWidgets.RecentHGroupLayer) {
-      layer = this.rHurricaneGroupLayer;
+      layer = this.rHurricaneGroupLayer.layers?.items[0];//to get queryExtent
       defaultCondition = this.defaultConditionForLayer.RecentHGroupLayer;
     }
 
@@ -1050,11 +1055,16 @@ export class EsriMapComponent implements OnInit, OnDestroy {
               break;
             case FiltersType.Water_Depth__feet_:
             case FiltersType.Complex_Id_Num:
-            case FiltersType.Install_Date:
-            case FiltersType.Removal_Date:
             case FiltersType.PipelineSegmentNumber:
               let condition2 = key.toString() + " " + value;
               expression.push(condition2);//will be formed from calling side
+              break;
+            case FiltersType.Install_Date:
+            case FiltersType.Removal_Date:
+              let condition3 = "CONVERT(" + key.toString() + " as DATE)" + " " + value;
+              //let condition3 = key.toString() + " " + value;
+              console.log(condition3, 'date condition');
+              expression.push(condition3);//will be formed from calling side
               break;
             default:
               break;
@@ -1159,8 +1169,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.getFieldDataForFilter(FiltersType.Area_Code);
     this.getFieldDataForFilter(FiltersType.Block_Number);
     this.getFieldDataForFilter(FiltersType.Bus_Asc_Name);
-    //this.getFieldDataForFilter(FiltersType.operatorName, "isMainOperator = 1");
-    this.getFieldDataForFilter(FiltersType.operatorName);
+    this.getFieldDataForFilter(FiltersType.operatorName, "i_IsMainOperator = 1");
+    //this.getFieldDataForFilter(FiltersType.operatorName);
     this.getFieldDataForFilter(FiltersType.platformName);
     this.getFieldDataForFilter(FiltersType.HurricaneYear);
     this.getFieldDataForFilter(FiltersType.HurricaneName);
