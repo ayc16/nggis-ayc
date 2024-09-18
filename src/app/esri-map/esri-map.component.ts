@@ -633,20 +633,23 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       }
     };
     var popupTemplate = {
-      title: "Platform:{PlatformName}",
+      title: "Platform:{platformName}",
       content: [{
         type: "fields",
         fieldInfos: [
-          { fieldName: "Bus_Asc_Name", label: "Operator Name" },
-          { fieldName: "Water_Depth__feet_", label: "Water Depth feet" },
-          { fieldName: "Install_Date", label: "Install Date" },
-          { fieldName: "Removal_Date", label: "Removal Date" }
+          { fieldName: "bus_Asc_Name", label: "Operator Name" },
+          { fieldName: "water_Depth__feet_", label: "Water Depth feet" },
+          { fieldName: "install_Date", label: "Install Date" },
+          { fieldName: "removal_Date", label: "Removal Date" }
         ]
       }]
     };
-    this.platformsBSEELayer = new FeatureLayer({
-      url: "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/Platform_BSEE_16sep/FeatureServer",
+    this.platformsBSEELayer = new GeoJSONLayer({
+      url: "https://coxinspectionserver.azurewebsites.net/api/GIS/gisbseeplatformsgeo",
       visible: false,
+      customParameters: {
+        format: "geojson",
+      },
       refreshInterval: 60,
       title: "Platform BSEE",
       //popup
