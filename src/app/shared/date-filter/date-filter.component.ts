@@ -93,7 +93,8 @@ export class DateFilterComponent implements OnInit, OnDestroy {
   }
 
   toModel(date: NgbDateStruct | null): string | null {
-    return date ? "'" + date.year.toString().padStart(4, "0") + this.DELIMITER + date.month.toString().padStart(2, "0") + this.DELIMITER + date.day.toString().padStart(2, "0") + "'" : null;
+    let datestr = date ? "'" + date.year.toString().padStart(4, "0") + this.DELIMITER + date.month.toString().padStart(2, "0") + this.DELIMITER + date.day.toString().padStart(2, "0") + "'" : null;
+    return datestr ? "date " + datestr : null;
   }
 
   ngOnDestroy(): void {

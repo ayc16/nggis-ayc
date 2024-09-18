@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FHLayerDetails, FilterList, FiltersType, LayersOrWidgets, MapResultSet, MapService, PlatformStatus } from '../shared/map.service';
+import { HLayerDetails, FilterList, FiltersType, LayersOrWidgets, MapResultSet, MapService, PlatformStatus } from '../shared/map.service';
 import { DropdownFilterComponent } from '../shared/dropdown-filter/dropdown-filter.component';
 import { NumericFilterComponent } from '../shared/numeric-filter/numeric-filter.component';
 import { DateFilterComponent } from "../shared/date-filter/date-filter.component";
@@ -117,8 +117,8 @@ export class SidePanelComponent {
   pipelineStatusCodes: FilterList[] = [];
   coneAdvisory: FilterList[] = [];
   rHurricaneNames: FilterList[] = [];
-  fhSubLayers: FHLayerDetails[] = [];
-  rhSubLayers: FHLayerDetails[] = [];
+  fhSubLayers: HLayerDetails[] = [];
+  rhSubLayers: HLayerDetails[] = [];
 
   hasLayerFilters: Record<LayersOrWidgets, Partial<boolean>> = {
     [LayersOrWidgets.PlatformLayer]: false,
@@ -284,6 +284,7 @@ export class SidePanelComponent {
   }
 
   toggleShowFH() {
+    this.showFH = !this.showFH;
     this.mapService.ShowHideLayersOrWidgets({ type: LayersOrWidgets.ForecastGroupLayer, visible: this.showFH });
   }
 

@@ -357,7 +357,7 @@ export interface MapResultSet {
   Index: number;
 }
 
-export interface FHLayerDetails {
+export interface HLayerDetails {
   // defaultVisibility: true,
   // geometryType: "esriGeometryPoint",
   // id: 0,
@@ -381,7 +381,7 @@ export interface FHLayerDetails {
 
 export interface HLayerDetailsList {
   layerOrWidget: LayersOrWidgets;
-  detailedList: FHLayerDetails[];
+  detailedList: HLayerDetails[];
 }
 
 export type HLayerDetailsListNullable = HLayerDetailsList | null

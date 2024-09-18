@@ -13,7 +13,7 @@ import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import Sketch from "@arcgis/core/widgets/Sketch";
 import * as geometryEngineAsync from "@arcgis/core/geometry/geometryEngineAsync"
 
-import { FHLayerDetails, FilterListUpdateNullable, FiltersType, LayersOrWidgets, LayersOrWidgetsStatus, MapFilter, MapFilterDetailsNullable, MapFilterNullable, MapService } from '../shared/map.service';
+import { HLayerDetails, FilterListUpdateNullable, FiltersType, LayersOrWidgets, LayersOrWidgetsStatus, MapFilter, MapFilterDetailsNullable, MapFilterNullable, MapService } from '../shared/map.service';
 import { NgxSpinnerModule, NgxSpinnerService } from 'ngx-spinner';
 import { ExcelService } from '../shared/excel.service';
 import { ToastrModule, ToastrService } from 'ngx-toastr';
@@ -41,9 +41,14 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   private pipelineLayer: any;
   private historicHurricaneTrackLayer: any;
   private hhConesLayer: any;
-  private forecastHurricaneLayers: any[] = [];//individual forecast layers
-  private forecastLayers: FHLayerDetails[] = [];//individual forecast layers details from esri
-  private forecastGroupLayer: any;//forecast group layer
+  private forecastHLayers: any[] = [];//individual forecast layers
+  private forecastHLayersDetails: HLayerDetails[] = [];//individual forecast layers details from esri
+  private forecastHGroupLayer: any;//forecast group layer
+
+  private recentHLayers: any[] = [];//individual recent layers
+  private recentHLayersDetails: HLayerDetails[] = [];//individual recent layers details from esri
+  private recentHGroupLayer: any;
+
 
   private defaultConditionForLayer: Record<LayersOrWidgets, string | undefined> = {
     [LayersOrWidgets.PlatformLayer]: "latitude <> 0 AND longitude <> 0", //ignore platform having latitude or longitude = 0
@@ -75,9 +80,6 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     [LayersOrWidgets.RecentHSubLayer1]: undefined,
     [LayersOrWidgets.RecentHSubLayer2]: undefined
   };
-  private recentHurricaneLayers: any[] = [];//individual recent layers
-  private recentHLayersDetails: FHLayerDetails[] = [];//individual recent layers details from esri
-  private rHurricaneGroupLayer: any;
 
   //graphicsLayer
   private graphicsLayer: any;
@@ -183,41 +185,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.view.ui.add(this.sketchWidget, "top-right");
 
     this.SetRHurricaneLayer();
-
-    //this.view.ui.add(this.exportBtn, "bottom-left");
-
-    // var element = document.createElement('div');
-    // element.title = "download platforms";
-    // element.id = "downloadSketchF";
-    // element.className = "esri-icon-download esri-widget--button esri-widget esri-interactive";
-    // element.addEventListener('click', function (evt) {
-    //   mainThis.ExportFeatures();
-    // })
-
-    // this.view.ui.add(element, "top-right");
     this.view.ui.add("sketchPanel", "top-right");
-
-    // Promise.all([this.forecastHurricaneLayers.forEach(x => x.load())]).then(function () {
-    //   map.add(mainThis.forecastGroupLayer);
-    // }).catch(function (error) {
-    //   console.error("Error loading forecast hurricane layers:", error);
-    // });
-
-    // Promise.all([this.forecastGroupLayer]).then(function () {
-    //   map.add(mainThis.forecastGroupLayer);
-    // }).catch(function (error) {
-    //   console.error("Error loading forecast hurricane layers:", error);
-    // });
-
-    // this.forecastGroupLayer.loadAll()
-    //   .catch((error: any) => {
-    //     // Ignore any failed resources
-    //     console.error("Error loading forecast hurricane layers:", error);
-    //   })
-    //   .then(() => {
-    //     console.log("All loaded");
-    //     map.add(mainThis.forecastGroupLayer);
-    //   });
 
     return this.view.when();
   }
@@ -241,27 +209,20 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       this.platformLayerView
         .queryFeatures(queryView)
         .then((results: any) => {
-          //console.log(results, 'results from sketch');
-          if (results.features && results.features.length === 0) {
-            console.log('no features');
-            this.toastr.warning("No Platform inside the sketch", "Results from sketch");
-          } else {
-            results.features.forEach((feature: any) => {
-              //console.log(feature,'feature...');
-            });
-
-            let header = Object.keys(results.features[0].attributes);
-            let datas = [];
-            for (let i = 0; i < results.features.length; i++) {
-              datas.push(results.features[i].attributes);
-            }
-            this.excelService.ExportDataExcel(datas, header, "Platforms");
-          }
+          this.exportDataToExcel(results);
         })
         .catch((error: any) => {
           console.log("error while downloading sketched feature:", error);
         });
     }
+  }
+
+  getDateFormat(date: any) {
+    if (date) {
+      var dataAttr = new Date(date);
+      return dataAttr.toISOString().slice(0, 10);
+    }
+    return date;
   }
 
   SetSketchLayer() {
@@ -332,16 +293,16 @@ export class EsriMapComponent implements OnInit, OnDestroy {
             }
             break;
           case LayersOrWidgets.ForecastGroupLayer:
-            if (this.forecastGroupLayer) {
-              this.forecastGroupLayer.visible = status.visible;
+            if (this.forecastHGroupLayer) {
+              this.forecastHGroupLayer.visible = status.visible;
               // this.forecastHurricaneLayers.forEach((layer) => {
               //   layer.visible = status.visible;
               // });
             }
             break;
           case LayersOrWidgets.RecentHGroupLayer:
-            if (this.rHurricaneGroupLayer) {
-              this.rHurricaneGroupLayer.visible = status.visible;
+            if (this.recentHGroupLayer) {
+              this.recentHGroupLayer.visible = status.visible;
             }
             break;
           case LayersOrWidgets.PipelineLayer:
@@ -352,8 +313,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
             }
             break;
           case LayersOrWidgets.ForecastSubLayerAll:
-            if (this.forecastGroupLayer.layers.items) {
-              this.forecastGroupLayer.layers.items.forEach((layer: any) => {
+            if (this.forecastHGroupLayer.layers.items) {
+              this.forecastHGroupLayer.layers.items.forEach((layer: any) => {
                 layer.visible = status.visible;
               });
             }
@@ -391,13 +352,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   }
   downloadFilteredData(layerOrWidget: LayersOrWidgets) {
     let mainThis = this;
-    // let layer = this.platformLayer;
-    // if (layerOrWidget == LayersOrWidgets.HistoricHurricaneTrackLayer) {
-    //   layer = this.historicHurricaneTrackLayer;
-    // }
-    // else if (layerOrWidget == LayersOrWidgets.PipelineLayer) {
-    //   layer = this.pipelineLayer;
-    // }
+
     let basicCondition = "1=1";
     if (layerOrWidget == LayersOrWidgets.PlatformLayer && this.defaultConditionForLayer.PlatformLayer != undefined) {
       basicCondition = this.defaultConditionForLayer.PlatformLayer;
@@ -409,20 +364,30 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       outFields: ["*"],
       orderByFields: [FiltersType.platformName]
     }).then(function (result: any) {
-
-      if (result.features && result.features.length > 0) {
-        let header = Object.keys(result.features[0].attributes);
-
-        let datas = [];
-        for (let i = 0; i < result.features.length; i++) {
-          datas.push(result.features[i].attributes);
-        }
-        mainThis.excelService.ExportDataExcel(datas, header, "FilteredData");
-      }
-      else {
-        mainThis.toastr.warning('No data to export', 'NO DATA');
-      }
+      mainThis.exportDataToExcel(result);
     });
+  }
+
+  private exportDataToExcel(result: any) {
+    if (result.features && result.features.length > 0) {
+      let header = Object.keys(result.features[0].attributes);
+      let datas = [];
+      for (let i = 0; i < result.features.length; i++) {
+
+        //convert timestamp(arcgis store date as timestamp) to date format
+        result.features[i].attributes.install_Date = this.getDateFormat(result.features[i].attributes.install_Date);
+        result.features[i].attributes.removal_Date = this.getDateFormat(result.features[i].attributes.removal_Date);
+        result.features[i].attributes.site_Clear_Date = this.getDateFormat(result.features[i].attributes.site_Clear_Date);
+        result.features[i].attributes.i_InstallDate = this.getDateFormat(result.features[i].attributes.i_InstallDate);
+        result.features[i].attributes.i_RemovalDate = this.getDateFormat(result.features[i].attributes.i_RemovalDate);
+
+        datas.push(result.features[i].attributes);
+      }
+      this.excelService.ExportDataExcel(datas, header, "Platforms");
+    }
+    else {
+      this.toastr.warning('No data to export', 'NO DATA');
+    }
   }
 
   private SetMainPlatformLayer() {
@@ -435,13 +400,6 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Esri color ramps - Beaded Pastel
-    //const colors = ["#d7191cff", "#fdae61ff", "#ffffbfff", "#2b83baff", "#e65154ff", "#26b6ffff", "#cd76d6ff", "#ffca8cff", "#fff2b3ff", "#ff8cd9ff", "#d99d5bff", "#c8f2a9ff", "#d4b8ffff"];
-
-    // Esri color ramps - Metro Movement
-    // #ed5151ff,#149eceff,#a7c636ff,#9e559cff,#fc921fff,#ffde3eff,#f789d8ff,#b7814aff,#3caf99ff,#6b6bd6ff,#b54779ff,#7f7f7fff
-    const colors = ["red", "blue", "green", "yellow", "violet", "deeppink", "maroon", "orange", "indigo", "lightseagreen"];//https://www.w3.org/wiki/CSS/Properties/color/keywords
-
     var uniqueValueInfos = [
       {
         value: "Removed",
@@ -450,76 +408,6 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           color: "grey",
         }
       },
-      // {
-      //   value: "Apache Corporation",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[0],
-      //   }
-      // },
-      // {
-      //   value: "Arena Offshore, LP",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[1],
-      //   }
-      // },
-      // {
-      //   value: "Cantium, LLC",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[2],
-      //   }
-      // },
-      // {
-      //   value: "Chevron U.S.A. Inc.",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[3],
-      //   }
-      // },
-      // {
-      //   value: "Cox Operating, L.L.C.",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[4],
-      //   }
-      // },
-      // {
-      //   value: "Fieldwood Energy LLC",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[5],
-      //   }
-      // },
-      // {
-      //   value: "Renaissance Offshore, LLC",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[6],
-      //   }
-      // },
-      // {
-      //   value: "Sanare Energy Partners, LLC",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[7],
-      //   }
-      // },
-      // {
-      //   value: "Talos Energy Offshore LLC",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[8],
-      //   }
-      // },
-      // {
-      //   value: "W & T Offshore, Inc.",
-      //   symbol: {
-      //     ...commonPltformSymbols,
-      //     color: colors[9],
-      //   }
-      // }
       // You can add more unique value info objects for other values if needed
     ]
 
@@ -560,10 +448,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       outFields: ["*"],//An array of field names used in the PopupTemplate. Use this property to indicate what fields are required to fully render the PopupTemplate.
       popupTemplate: this.getPlatformPopupTemplate()
     });
-
-    // this.platformLayer.load().then(() => {
     this.platformLayer.renderer = platformsRender;
-    //});
   }
 
   private getPlatformPopupTemplate() {
@@ -809,7 +694,6 @@ export class EsriMapComponent implements OnInit, OnDestroy {
             { fieldName: "PROT_NAME", label: "PROT_NAME" },
             { fieldName: "PROT_NUMBE", label: "PROT_NUMBER" },
             { fieldName: "PROTCLIP_", label: "PROTCLIP" },
-
           ]
         }]
       },
@@ -946,11 +830,11 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       defaultCondition = this.defaultConditionForLayer.HHConeLayer;
     }
     else if (filters.layerOrWidget == LayersOrWidgets.ForecastGroupLayer) {
-      layer = this.forecastHurricaneLayers;
+      layer = this.forecastHLayers;
       defaultCondition = this.defaultConditionForLayer.ForecastGroupLayer;
     }
     else if (filters.layerOrWidget == LayersOrWidgets.RecentHGroupLayer) {
-      layer = this.rHurricaneGroupLayer.layers?.items[0];//to get queryExtent
+      layer = this.recentHGroupLayer.layers?.items[0];//to get queryExtent
       defaultCondition = this.defaultConditionForLayer.RecentHGroupLayer;
     }
 
@@ -962,7 +846,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       layer.definitionExpression = this.defaultConditionForLayer.PlatformLayer + " AND " + finalCondition;
     }
     else if (filters.layerOrWidget == LayersOrWidgets.RecentHGroupLayer) {
-      this.rHurricaneGroupLayer.layers.forEach((layer: any) => {
+      this.recentHGroupLayer.layers.forEach((layer: any) => {
         layer.definitionExpression = finalCondition;
       });
     }
@@ -1056,15 +940,10 @@ export class EsriMapComponent implements OnInit, OnDestroy {
             case FiltersType.Water_Depth__feet_:
             case FiltersType.Complex_Id_Num:
             case FiltersType.PipelineSegmentNumber:
-              let condition2 = key.toString() + " " + value;
-              expression.push(condition2);//will be formed from calling side
-              break;
             case FiltersType.Install_Date:
             case FiltersType.Removal_Date:
-              let condition3 = "CONVERT(" + key.toString() + " as DATE)" + " " + value;
-              //let condition3 = key.toString() + " " + value;
-              console.log(condition3, 'date condition');
-              expression.push(condition3);//will be formed from calling side
+              let condition2 = key.toString() + " " + value;
+              expression.push(condition2);//will be formed from calling side
               break;
             default:
               break;
@@ -1090,37 +969,37 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       case LayersOrWidgets.HHConeLayer:
         return this.hhConesLayer;
       case LayersOrWidgets.ForecastGroupLayer:
-        return this.forecastHurricaneLayers;
+        return this.forecastHLayers;
       case LayersOrWidgets.ForecastSubLayer0:
-        return this.forecastGroupLayer.layers.items[0];
+        return this.forecastHGroupLayer.layers.items[0];
       case LayersOrWidgets.ForecastSubLayer1:
-        return this.forecastGroupLayer.layers.items[1];
+        return this.forecastHGroupLayer.layers.items[1];
       case LayersOrWidgets.ForecastSubLayer2:
-        return this.forecastGroupLayer.layers.items[2];
+        return this.forecastHGroupLayer.layers.items[2];
       case LayersOrWidgets.ForecastSubLayer3:
-        return this.forecastGroupLayer.layers.items[3];
+        return this.forecastHGroupLayer.layers.items[3];
       case LayersOrWidgets.ForecastSubLayer4:
-        return this.forecastGroupLayer.layers.items[4];
+        return this.forecastHGroupLayer.layers.items[4];
       case LayersOrWidgets.ForecastSubLayer5:
-        return this.forecastGroupLayer.layers.items[5];
+        return this.forecastHGroupLayer.layers.items[5];
       case LayersOrWidgets.ForecastSubLayer7:
-        return this.forecastGroupLayer.layers.items[6];
+        return this.forecastHGroupLayer.layers.items[6];
       case LayersOrWidgets.ForecastSubLayer8:
-        return this.forecastGroupLayer.layers.items[7];
+        return this.forecastHGroupLayer.layers.items[7];
       case LayersOrWidgets.ForecastSubLayer9:
-        return this.forecastGroupLayer.layers.items[8];
+        return this.forecastHGroupLayer.layers.items[8];
       case LayersOrWidgets.ForecastSubLayer10:
-        return this.forecastGroupLayer.layers.items[9];
+        return this.forecastHGroupLayer.layers.items[9];
       case LayersOrWidgets.ForecastSubLayer11:
-        return this.forecastGroupLayer.layers.items[10];
+        return this.forecastHGroupLayer.layers.items[10];
       case LayersOrWidgets.RecentHGroupLayer:
-        return this.rHurricaneGroupLayer;
+        return this.recentHGroupLayer;
       case LayersOrWidgets.RecentHSubLayer0:
-        return this.rHurricaneGroupLayer.layers.items[0];
+        return this.recentHGroupLayer.layers.items[0];
       case LayersOrWidgets.RecentHSubLayer1:
-        return this.rHurricaneGroupLayer.layers.items[1];
+        return this.recentHGroupLayer.layers.items[1];
       case LayersOrWidgets.RecentHSubLayer2:
-        return this.rHurricaneGroupLayer.layers.items[2];
+        return this.recentHGroupLayer.layers.items[2];
     }
     return null;
   }
@@ -1129,19 +1008,12 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     let mainThis = this;
     let options: { text: string, value: string }[] = [];
 
-    //create reference to required layer
-    //let layer = this.platformLayer;
+    //create reference to required layer    
     let layerOrWidget = this.mapService.getLayerOrWidgetFromFilterType(fieldName);
-    // if (layerOrWidget == LayersOrWidgets.HistoricHurricaneTrackLayer) {
-    //   layer = this.historicHurricaneTrackLayer;
-    // }
-    // else if (layerOrWidget == LayersOrWidgets.PipelineLayer) {
-    //   layer = this.pipelineLayer;
-    // }
     let layer = this.getLayerFromLayerOrWidget(layerOrWidget);
 
     if (fieldName === FiltersType.RH_STORMNAME)
-      layer = this.rHurricaneGroupLayer.layers.items[0];
+      layer = this.recentHGroupLayer.layers.items[0];
 
     layer.queryFeatures({
       where: condition,// "1=1",
@@ -1149,10 +1021,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       outFields: [fieldName],
       orderByFields: [fieldName]
     }).then(function (result: any) {
-      //console.log(layerOrWidget, result);
       result.features.forEach(function (feature: any) {
         var value = feature.attributes[fieldName];
-        //console.log(value, 'feature');
         var displayValue = value; // Get the area name later
         if (value === undefined || value === null || value == '')
           displayValue = 'Unknown';
@@ -1176,7 +1046,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     this.getFieldDataForFilter(FiltersType.HurricaneName);
     this.getFieldDataForFilter(FiltersType.PipelineOperator);
     this.getFieldDataForFilter(FiltersType.PipelineStatusCode);
-    this.getFieldDataForFilter(FiltersType.RH_STORMNAME);
+    //this.getFieldDataForFilter(FiltersType.RH_STORMNAME);- done after layer is loaded
   }
 
   //#region Hurricane
@@ -1214,8 +1084,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       }
     }).then((response: any) => {
       // The requested data
-      this.forecastLayers = response.data.layers;
-      this.forecastLayers.forEach((layer: FHLayerDetails) => {
+      this.forecastHLayersDetails = response.data.layers;
+      this.forecastHLayersDetails.forEach((layer: HLayerDetails) => {
         layer.isVisible = true;
         var fhLayer = new FeatureLayer({
           url: "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/Active_Hurricanes_v1/FeatureServer/" + layer.id,
@@ -1224,24 +1094,24 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           definitionExpression: "1=1",
           visible: true
         });
-        this.forecastHurricaneLayers.push(fhLayer);
+        this.forecastHLayers.push(fhLayer);
       });
 
-      this.forecastGroupLayer = new GroupLayer({
+      this.forecastHGroupLayer = new GroupLayer({
         visibilityMode: "independent",//Each child layer manages its visibility independent from other layers.
         title: "Forecast Hurricanes",
         visible: false
       });
-      this.forecastGroupLayer.layers.addMany(this.forecastHurricaneLayers);
-      this.forecastGroupLayer.loadAll()
+      this.forecastHGroupLayer.layers.addMany(this.forecastHLayers);
+      this.forecastHGroupLayer.loadAll()
         .catch((error: any) => {
           // Ignore any failed resources
           console.error("Error loading forecast hurricane layers:", error);
         })
         .then(() => {
           //console.log("All loaded");
-          mainThis.map.add(mainThis.forecastGroupLayer);
-          this.mapService.setHLayerListFromMap({ layerOrWidget: LayersOrWidgets.ForecastGroupLayer, detailedList: mainThis.forecastLayers });
+          mainThis.map.add(mainThis.forecastHGroupLayer);
+          this.mapService.setHLayerListFromMap({ layerOrWidget: LayersOrWidgets.ForecastGroupLayer, detailedList: mainThis.forecastHLayersDetails });
         });
     }).catch((err) => {
       if (err.name === 'AbortError') {
@@ -1279,7 +1149,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       // The requested data
       this.recentHLayersDetails = response.data.layers;
       //console.log(response.data.layers, 'recentHLayersDetails');
-      this.recentHLayersDetails.forEach((layer: FHLayerDetails) => {
+      this.recentHLayersDetails.forEach((layer: HLayerDetails) => {
         layer.isVisible = true;
         var rhLayer = new FeatureLayer({
           url: recentHUrl + "/" + layer.id,
@@ -1288,24 +1158,25 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           definitionExpression: "1=1",
           visible: true
         });
-        this.recentHurricaneLayers.push(rhLayer);
+        this.recentHLayers.push(rhLayer);
       });
 
-      this.rHurricaneGroupLayer = new GroupLayer({
+      this.recentHGroupLayer = new GroupLayer({
         visibilityMode: "independent",//Each child layer manages its visibility independent from other layers.
         title: "Recent Hurricanes",
         visible: false
       });
-      this.rHurricaneGroupLayer.layers.addMany(this.recentHurricaneLayers);
-      this.rHurricaneGroupLayer.loadAll()
+      this.recentHGroupLayer.layers.addMany(this.recentHLayers);
+      this.recentHGroupLayer.loadAll()
         .catch((error: any) => {
           // Ignore any failed resources
           console.error("Error loading recent hurricane layers:", error);
         })
         .then(() => {
           //console.log("All loaded");
-          mainThis.map.add(mainThis.rHurricaneGroupLayer);
+          mainThis.map.add(mainThis.recentHGroupLayer);
           this.mapService.setHLayerListFromMap({ layerOrWidget: LayersOrWidgets.RecentHGroupLayer, detailedList: mainThis.recentHLayersDetails });
+          this.getFieldDataForFilter(FiltersType.RH_STORMNAME);
         });
     }).catch((err) => {
       if (err.name === 'AbortError') {
