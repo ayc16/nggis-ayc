@@ -9,3 +9,14 @@
         </div>
     </div>
 </div>
+
+<div id="measurementDiv" style="display: none;">
+    <div id="toolbarDiv" class="d-flex">
+        <div id="distance" (click)="distanceMeasurement()" class="esri-widget--button esri-interactive esri-icon-measure-line" title="Distance Measurement Tool" [ngClass]="{
+                          'text-primary': measurementWidget.activeTool == 'distance'}">
+        </div>
+        <div id="area" (click)="areaMeasurement()" class="esri-widget--button esri-interactive esri-icon-measure-area" title="Area Measurement Tool" [ngClass]="{
+                          'text-primary': measurementWidget.activeTool == 'area'}">
+        </div>
+    </div>
+</div>

@@ -147,7 +147,8 @@ export class SidePanelComponent {
     [LayersOrWidgets.RecentHGroupLayer]: false,
     [LayersOrWidgets.RecentHSubLayer0]: false,
     [LayersOrWidgets.RecentHSubLayer1]: false,
-    [LayersOrWidgets.RecentHSubLayer2]: false
+    [LayersOrWidgets.RecentHSubLayer2]: false,
+    [LayersOrWidgets.Measurement]: false
   };
 
   toggleBlockLayer() {

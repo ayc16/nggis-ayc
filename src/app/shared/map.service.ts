@@ -336,6 +336,7 @@ export enum LayersOrWidgets {
   RecentHSubLayer2 = "RecentHSubLayer2",
   None = "None",
   Sketch = "Sketch",
+  Measurement = "Measurement",
 }
 
 export class MapFilterDetails extends Map<FiltersType, any> { };

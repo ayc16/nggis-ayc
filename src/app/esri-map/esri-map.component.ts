@@ -11,6 +11,7 @@ import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
 import esriRequest from "@arcgis/core/request.js";
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import Sketch from "@arcgis/core/widgets/Sketch";
+import Measurement from "@arcgis/core/widgets/Measurement";
 import * as geometryEngineAsync from "@arcgis/core/geometry/geometryEngineAsync"
 
 import { HLayerDetails, FilterListUpdateNullable, FiltersType, LayersOrWidgets, LayersOrWidgetsStatus, MapFilter, MapFilterDetailsNullable, MapFilterNullable, MapService } from '../shared/map.service';
@@ -18,16 +19,19 @@ import { NgxSpinnerModule, NgxSpinnerService } from 'ngx-spinner';
 import { ExcelService } from '../shared/excel.service';
 import { ToastrModule, ToastrService } from 'ngx-toastr';
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-esri-map',
   standalone: true,
-  imports: [NgxSpinnerModule, ToastrModule],
+  imports: [NgxSpinnerModule, ToastrModule, CommonModule],
   templateUrl: './esri-map.component.html',
   styleUrl: './esri-map.component.scss',
   encapsulation: ViewEncapsulation.None,
 })
 export class EsriMapComponent implements OnInit, OnDestroy {
+  baseUrl = "https://gisisims.azurewebsites.net/api/";
+  //baseUrl = "https://localhost:7203/api/";
   public view: any = null;
   constructor(private mapService: MapService, private spinnerService: NgxSpinnerService, private excelService: ExcelService, private toastr: ToastrService) {
   }
@@ -52,6 +56,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   private defaultConditionForLayer: Record<LayersOrWidgets, string | undefined> = {
     [LayersOrWidgets.PlatformLayer]: "latitude <> 0 AND longitude <> 0", //ignore platform having latitude or longitude = 0
+
     //[LayersOrWidgets.PlatformLayer]: "1=1", //ignore platform having latitude or longitude = 0
     [LayersOrWidgets.BSEEPlatformLayer]: undefined,
     [LayersOrWidgets.Legend]: undefined,
@@ -78,13 +83,16 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     [LayersOrWidgets.RecentHGroupLayer]: undefined,
     [LayersOrWidgets.RecentHSubLayer0]: undefined,
     [LayersOrWidgets.RecentHSubLayer1]: undefined,
-    [LayersOrWidgets.RecentHSubLayer2]: undefined
+    [LayersOrWidgets.RecentHSubLayer2]: undefined,
+    [LayersOrWidgets.Measurement]: undefined
   };
 
   //graphicsLayer
   private graphicsLayer: any;
   private sketchWidget: any;
   private platformLayerView: any;
+  // Create new instance of the Measurement widget
+  measurementWidget: any;
 
   // The <div> where we will place the map
   @ViewChild('mapViewNode', { static: true }) private mapViewEl!: ElementRef;
@@ -126,7 +134,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     });
     // Add widget to the bottom left corner of the view
     this.view.ui.add(scaleBar, {
-      position: "bottom-left"
+      position: "top-left"
     });
 
     this.legend = new Legend({
@@ -134,6 +142,15 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       visible: true
     });
     this.view.ui.add(this.legend, "bottom-right");
+
+    this.measurementWidget = new Measurement({
+      view: this.view,
+      visible: false,
+      linearUnit: "miles",
+      areaUnit: "square-miles",
+    });
+    // Add the appropriate measurement UI to the bottom-right when activated
+    this.view.ui.add(this.measurementWidget, "bottom-right");
 
     //Add Layers with toggle.
     this.SetAreaLayer();
@@ -186,8 +203,22 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
     this.SetRHurricaneLayer();
     this.view.ui.add("sketchPanel", "top-right");
+    this.view.ui.add("measurementDiv", "top-right");
 
     return this.view.when();
+  }
+
+  distanceMeasurement() {
+    this.measurementWidget.activeTool = "distance";
+  }
+
+  areaMeasurement() {
+    this.measurementWidget.activeTool = "area";
+  }
+
+  // Clears all measurements
+  clearMeasurements() {
+    this.measurementWidget.clear();
   }
 
   ClearSketch() {
@@ -322,9 +353,21 @@ export class EsriMapComponent implements OnInit, OnDestroy {
           case LayersOrWidgets.Sketch:
             if (this.sketchWidget) {
               this.sketchWidget.visible = status.visible;
-              var downloadBtn = document.getElementById('sketchPanel');
-              if (downloadBtn)
-                downloadBtn.style.display = status.visible ? 'block' : 'none';
+              var sketchpnl = document.getElementById('sketchPanel');
+              if (sketchpnl)
+                sketchpnl.style.display = status.visible ? 'block' : 'none';
+            }
+            break;
+          case LayersOrWidgets.Measurement:
+            if (this.measurementWidget) {
+              if (status.visible)
+                this.distanceMeasurement();
+              else
+                this.clearMeasurements();
+              this.measurementWidget.visible = status.visible;
+              var measureMentPnl = document.getElementById('measurementDiv');
+              if (measureMentPnl)
+                measureMentPnl.style.display = status.visible ? 'block' : 'none';
             }
             break;
           default:
@@ -394,7 +437,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
     let commonPltformSymbols = {
       type: "simple-marker",
-      size: "4px", // Adjust the size of the symbol as needed     
+      size: "4px", // Adjust the size of the symbol as needed
       outline: {
         color: "transparent" // Set outline color to transparent
       }
@@ -438,7 +481,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     };
 
     this.platformLayer = new GeoJSONLayer({
-      url: "https://coxinspectionserver.azurewebsites.net/api/GIS/gisplatformsgeojoined",
+      url: `${this.baseUrl}GIS/gisplatformsgeojoined`,
       customParameters: {
         format: "geojson",
       },
@@ -645,7 +688,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       }]
     };
     this.platformsBSEELayer = new GeoJSONLayer({
-      url: "https://coxinspectionserver.azurewebsites.net/api/GIS/gisbseeplatformsgeo",
+      url: `${this.baseUrl}GIS/gisbseeplatformsgeo`,
       visible: false,
       customParameters: {
         format: "geojson",
@@ -910,7 +953,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     //console.log("filterList update", filters);
     if (filters == null) return;
 
-    let defaultCondition = "1=1";//this is to get filter list so each layer will have a default condition value as 1=1 to get all unique values   
+    let defaultCondition = "1=1";//this is to get filter list so each layer will have a default condition value as 1=1 to get all unique values
     if (filters.type == FiltersType.HConeAdvisory) {
       //we need data only if we have some other conditions
       defaultCondition = "1=0";
@@ -1011,7 +1054,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
     let mainThis = this;
     let options: { text: string, value: string }[] = [];
 
-    //create reference to required layer    
+    //create reference to required layer
     let layerOrWidget = this.mapService.getLayerOrWidgetFromFilterType(fieldName);
     let layer = this.getLayerFromLayerOrWidget(layerOrWidget);
 
@@ -1194,6 +1237,163 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       Observed Track (1)
       Observed Wind Swath (2)
     */
+  }
+
+  private SetRHurricaneLayer_ISims() {
+    let recentHUrl = "https://services2.arcgis.com/Tk8KtWY399EerUu0/arcgis/rest/services/recent_hurricane/FeatureServer";
+    let mainThis = this;
+    esriRequest(recentHUrl, {
+      responseType: "json",
+      query: {
+        f: "json"
+      }
+    }).then((response: any) => {
+      // The requested data
+      this.recentHLayersDetails = response.data.layers;
+      //console.log(response.data.layers, 'recentHLayersDetails');
+      this.recentHLayersDetails.forEach((layer: HLayerDetails) => {
+        layer.isVisible = true;
+        var rhLayer = new FeatureLayer({
+          url: recentHUrl + "/" + layer.id,
+          title: layer.name,
+          outFields: ["*"],//An array of field names used in the PopupTemplate. Use this property to indicate what fields are required to fully render the PopupTemplate.
+          definitionExpression: "1=1",
+          visible: true
+        });
+
+        if (layer.name == "Observed Wind Swath") {
+          const windSwathRenderer: any = {
+            type: "unique-value",
+            field: "RADII",
+            uniqueValueInfos: [
+              this.createFillSymbol("34", "#FFFF00", "Tropical Storm Force (34kts)"),
+              this.createFillSymbol("50", "#FF9900", "Strong Tropical Storm (50kts)"),
+              this.createFillSymbol("64", "#FF0000", "Hurricane Force (64kts+)"),
+            ]
+          };
+          rhLayer.renderer = windSwathRenderer,
+            rhLayer.opacity = 0.3
+        }
+        else if (layer.name == "Observed Track") {
+          let pink = "#ff73df";
+          let width = 3;
+          var uniqueValueInfos = [
+            this.createLineSymbol("Low", pink, width),
+            this.createLineSymbol("Remnant Low", pink, width),
+            this.createLineSymbol("Disturbance", pink, width),
+            this.createLineSymbol("Subtropical Storm", pink, width),
+            this.createLineSymbol("Tropical Wave", pink, width),
+            this.createLineSymbol("Tropical Depression", pink, width),
+            this.createLineSymbol("Tropical Storm", "blue", width),
+            this.createLineSymbol("Hurricane1", "#00FF00", 4),
+            this.createLineSymbol("Hurricane2", "yellow", 5),
+            this.createLineSymbol("Hurricane3", "#FF8000", 6),
+            this.createLineSymbol("Hurricane4", "#FF0000", 7),
+            this.createLineSymbol("Hurricane5", "#000000", 8)
+          ]
+
+          let trackRender: any = {
+            type: "unique-value", // Use unique-value renderer for different symbols based on values
+            legendOptions: {
+              title: "Observed Track"
+            },
+            field: "STORMTYPE", // Use STORMTYPE field for differentiating values    
+
+            // defaultSymbol: {
+            //   color: "grey",
+            //   type: "simple-fill",
+            //   style: "solid",// Default color for features where the expression does not apply here for active we are setting blue and for removed it's gray
+            // },
+            uniqueValueInfos: uniqueValueInfos
+          };
+
+          rhLayer.renderer = trackRender;
+          rhLayer.opacity = 0.5;
+        }
+        else if (layer.name == "Observed Position") {
+          const positionRenderer: any = this.createDotSymbol("black", "10px", "orange", 2);
+          rhLayer.renderer = positionRenderer;
+          rhLayer.opacity = 1;
+        }
+        this.recentHLayers.push(rhLayer);
+      });
+
+      this.recentHGroupLayer = new GroupLayer({
+        visibilityMode: "independent",//Each child layer manages its visibility independent from other layers.
+        title: "Recent Hurricanes",
+        visible: false
+      });
+      this.recentHGroupLayer.layers.addMany(this.recentHLayers);
+      this.recentHGroupLayer.loadAll()
+        .catch((error: any) => {
+          // Ignore any failed resources
+          console.error("Error loading recent hurricane layers:", error);
+        })
+        .then(() => {
+          //console.log("All loaded");
+          mainThis.map.add(mainThis.recentHGroupLayer);
+          this.mapService.setHLayerListFromMap({ layerOrWidget: LayersOrWidgets.RecentHGroupLayer, detailedList: mainThis.recentHLayersDetails });
+          this.getFieldDataForFilter(FiltersType.RH_STORMNAME);
+        });
+    }).catch((err) => {
+      if (err.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        console.error('Error encountered', err);
+      }
+    });
+
+    /*
+      Observed Position (0)
+      Observed Track (1)
+      Observed Wind Swath (2)
+    */
+  }
+
+  createFillSymbol(value: any, color: string, label: string) {
+    return {
+      "value": value,
+      "symbol": {
+        "color": color,
+        "type": "simple-fill",
+        "style": "solid",
+        "outline": {
+          "style": "none"
+        }
+      },
+      "label": label
+    };
+  }
+
+  createLineSymbol(value: any, color: string, lineWidth: number) {
+    return {
+      "value": value,
+      "symbol": {
+        "color": color,
+        "type": "simple-line",
+        "style": "solid",
+        "width": lineWidth,
+        // "outline": {
+        //   "style": "none"
+        // }
+      },
+      "label": value
+    };
+  }
+
+  createDotSymbol(color: string, size: any, outlineColor: any, outlineWidth: any) {
+    return {
+      type: "simple",  // autocasts as new SimpleRenderer()
+      symbol: {
+        type: "simple-marker",  // autocasts as new SimpleMarkerSymbol()
+        size: size,
+        color: color,
+        outline: {  // autocasts as new SimpleLineSymbol()
+          width: outlineWidth,
+          color: outlineColor
+        }
+      }
+    }
   }
 
   //#endregion
